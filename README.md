@@ -2,7 +2,8 @@
 
 ![PHP Version](https://img.shields.io/badge/php-%3E%3D7.2-777bb3.svg?logo=php&logoColor=white)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)
-![Stand with Ukraine](https://img.shields.io/badge/Stand%20with-Ukraine-blue?style=flat&logo=flag-ukraine)
+[![Stand with Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://stand-with-ukraine.pp.ua)
+[![Made in Ukraine](https://img.shields.io/badge/made_in-Ukraine-ffd700.svg?labelColor=0057b7)](https://stand-with-ukraine.pp.ua)
 
 A lightweight PHP library to fetch the **currently playing track** from any online radio stream.
 
@@ -20,7 +21,7 @@ A lightweight PHP library to fetch the **currently playing track** from any onli
 ```php
 <?php
 
-require_once('Mp3StreamTitle/Mp3StreamTitle.php');
+require_once 'Mp3StreamTitle' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'Mp3StreamTitle.php';
 
 use Mp3StreamTitle\Mp3StreamTitle;
 

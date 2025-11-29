@@ -1,0 +1,29 @@
+# Logs
+logs/
+*.log
+error_log
+
+# Temporary files
+*.tmp
+*~
+
+# IDE Files (PhpStorm)
+.idea/
+
+# IDE Files (VS Code)
+.vscode/
+
+# Composer Dependencies
+vendor/
+
+# Cache Files
+cache/
+tmp/
+
+# Environment Files
+.env
+.env.*
+
+# Operating System Files
+.DS_Store
+Thumbs.db

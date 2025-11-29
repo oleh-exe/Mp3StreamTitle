@@ -10,7 +10,7 @@
  * Note: This is example/demo code. Use at your own risk ("AS IS").
  */
 
-require_once(__DIR__.'/../Mp3StreamTitle.php');
+require_once __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'Mp3StreamTitle.php';
 
 use Mp3StreamTitle\Mp3StreamTitle;
 
