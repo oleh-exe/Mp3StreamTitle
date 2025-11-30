@@ -28,14 +28,14 @@ class Mp3StreamTitle
      *
      * @var int
      */
-    public $send_type = 1;
+    public int $send_type = 1;
 
     /**
      * The contents of our "User-Agent" HTTP-header.
      *
      * @var string
      */
-    public $user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36';
+    public string $user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36';
 
     /**
      * Enable or disable the display of error messages.
@@ -44,32 +44,32 @@ class Mp3StreamTitle
      *
      * @var int
      */
-    public $show_errors = 0;
+    public int $show_errors = 0;
 
     /**
      * Maximum metadata length in bytes.
      *
      * @var int
      */
-    public $meta_max_length = 5228;
+    public int $meta_max_length = 5228;
 
     /**
      * The function takes as an argument a direct link to the stream of
      * any online radio station and uses the function specified in the
      * settings to send requests to the stream-server.
      *
-     * @param  string  $streaming_url
-     * @return $this
+     * @param string $streaming_url
+     * @return int|string|Mp3StreamTitle
      */
-    public function sendRequest($streaming_url)
+    public function sendRequest(string $streaming_url): int|string|static
     {
         // Use the cURL-function.
         if ($this->send_type == 1) {
             return $this->sendCurl($streaming_url);
-        // Use the Socket-function.
+            // Use the Socket-function.
         } elseif ($this->send_type == 2) {
             return $this->sendSocket($streaming_url);
-        // Use the FGC-function.
+            // Use the FGC-function.
         } else {
             return $this->sendFGC($streaming_url);
         }
@@ -81,20 +81,20 @@ class Mp3StreamTitle
      * the song information from the metadata in the following format
      * "artist name and song name".
      *
-     * @param  string  $metadata
-     * @return mixed
+     * @param string $metadata
+     * @return string|int
      */
-    public function getSongInfo($metadata)
+    public function getSongInfo(string $metadata): string|int
     {
         /* Find the position of the string "='" indicating the beginning of information about the
            song and find position of the string "';" which indicates the end of the song information. */
         if (($info_start = strpos($metadata, '=\'')) && ($info_end = strpos($metadata, '\';'))) {
             // Get information about the song in the following format "artist name and song name".
             $result = substr($metadata, $info_start + 2, $info_end - ($info_start + 2));
-        // If error messages display disabled.
+            // If error messages display disabled.
         } elseif ($this->show_errors == 0) {
             $result = 0;
-        // If enabled.
+            // If enabled.
         } else {
             $result = 'Failed to get song info.';
         }
@@ -107,23 +107,25 @@ class Mp3StreamTitle
      * server. In the server response headers, the function looks for the
      * "icy-metaint" header and returns its value.
      *
-     * @param  string  $streaming_url
-     * @return mixed
+     * @param string $streaming_url
+     * @return string|int
      */
-    public function getOffset($streaming_url)
+    public function getOffset(string $streaming_url): string|int
     {
         // Initialize variables.
         $result = 0;
 
         // HTTP-request headers.
         $options_method = "GET";
-        $options_header = "User-Agent: ".$this->user_agent."\r\n";
+        $options_header = "User-Agent: " . $this->user_agent . "\r\n";
         $options_header .= "icy-metadata: 1\r\n\r\n";
 
         $options = [
-            'http' => ['method'  => $options_method,
-                       'header'  => $options_header,
-                       'timeout' => 30]
+            'http' => [
+                'method' => $options_method,
+                'header' => $options_header,
+                'timeout' => 30
+            ]
         ];
 
         // Create a thread context.
@@ -131,19 +133,15 @@ class Mp3StreamTitle
 
         // Get the headers from the server response to the HTTP-request.
         if ($headers = @get_headers($streaming_url, 0, $context)) {
-
             // Looking for the header "icy-metaint".
             foreach ($headers as $h) {
-
-              /* Find out how many bytes of data from the stream you need to read before
-                 the metadata begins (which contains the name of the artist and the name of the song). */
-              if (strpos($h, 'icy-metaint') !== false && ($result = explode(':', $h)[1])) {
-                  // Break the cycle.
-                  break;
-              }
-
+                /* Find out how many bytes of data from the stream you need to read before
+                   the metadata begins (which contains the name of the artist and the name of the song). */
+                if (strpos($h, 'icy-metaint') !== false && ($result = explode(':', $h)[1])) {
+                    // Break the cycle.
+                    break;
+                }
             }
-
         }
         return $result;
     }
@@ -154,17 +152,16 @@ class Mp3StreamTitle
      * server. As a result, the function returns information about the song
      * in the following format "artist name and song name".
      *
-     * @param  string  $streaming_url
-     * @return mixed
+     * @param string $streaming_url
+     * @return string|int
      */
-    public function sendCurl($streaming_url)
+    public function sendCurl(string $streaming_url): string|int
     {
         // Initialize variables.
         $metadata = '';
 
         // Checking if we can use cURL.
         if (extension_loaded('curl') && function_exists('curl_init')) {
-
             /* Find out from which byte the metadata will begin.
                If successful, continue to perform the function. */
             if ($offset = $this->getOffset($streaming_url)) {
@@ -173,7 +170,7 @@ class Mp3StreamTitle
 
                 /* The callback-function returns the number of data bytes received or metadata.
                    The function is used as the value of the parameter "CURLOPT_WRITEFUNCTION". */
-                $write_function = function($ch, $chunk) use ($data_byte, $offset, &$metadata) {
+                $write_function = function ($ch, $chunk) use ($data_byte, $offset, &$metadata) {
                     // Initialize variables.
                     static $data = '';
 
@@ -230,26 +227,24 @@ class Mp3StreamTitle
                 // Return the result of the request.
                 if ($metadata) {
                     $result = $this->getSongInfo($metadata);
-                // If error messages display disabled.
+                    // If error messages display disabled.
                 } elseif ($this->show_errors == 0) {
                     $result = 0;
-                // If enabled.
+                    // If enabled.
                 } else {
-                    $result = $error.' ('.$errno.').';
+                    $result = $error . ' (' . $errno . ').';
                 }
-
-            // If error messages display disabled.
+                // If error messages display disabled.
             } elseif ($this->show_errors == 0) {
                 $result = 0;
-            // If enabled.
+                // If enabled.
             } else {
                 $result = 'Failed to get headers from server response to HTTP-request or "icy-metaint" header value.';
             }
-
-        // If error messages display disabled.
+            // If error messages display disabled.
         } elseif ($this->show_errors == 0) {
             $result = 0;
-        // If enabled.
+            // If enabled.
         } else {
             $result = 'There is no way to use the cURL library on this hosting.';
         }
@@ -262,15 +257,15 @@ class Mp3StreamTitle
      * server. As a result, the function returns information about the song
      * in the following format "artist name and song name".
      *
-     * @param  string  $streaming_url
-     * @return mixed
+     * @param string $streaming_url
+     * @return string|int
      */
-    public function sendSocket($streaming_url)
+    public function sendSocket(string $streaming_url): string|int
     {
         // Initialize variables.
         $prefix = '';
-        $port   = 80;
-        $path   = '/';
+        $port = 80;
+        $path = '/';
 
         /* Find out from which byte the metadata will begin.
            If successful, continue to perform the function. */
@@ -281,7 +276,7 @@ class Mp3StreamTitle
             // Find out protocol.
             if ($url_part['scheme'] == 'https') {
                 $prefix = 'ssl://'; // If HTTPS, use the SSL protocol.
-                $port   = 443; // If HTTPS, the port can only be 443.
+                $port = 443; // If HTTPS, the port can only be 443.
             }
 
             // Find out port and protocol.
@@ -295,10 +290,10 @@ class Mp3StreamTitle
             }
 
             // Open connection.
-            if ($fp = @fsockopen($prefix.$url_part['host'], $port, $errno, $errstr, 30)) {
+            if ($fp = @fsockopen($prefix . $url_part['host'], $port, $errno, $errstr, 30)) {
                 // HTTP-request headers.
-                $headers = "GET ".$path." HTTP/1.0\r\n";
-                $headers .= "User-Agent: ".$this->user_agent."\r\n";
+                $headers = "GET " . $path . " HTTP/1.0\r\n";
+                $headers .= "User-Agent: " . $this->user_agent . "\r\n";
                 $headers .= "icy-metadata: 1\r\n\r\n";
 
                 // Send a request to the stream-server.
@@ -323,32 +318,30 @@ class Mp3StreamTitle
 
                     // Return the result of the request.
                     $result = $this->getSongInfo($metadata);
-                // If error messages display disabled.
+                    // If error messages display disabled.
                 } elseif ($this->show_errors == 0) {
                     // Close the connection.
                     fclose($fp);
 
                     $result = 0;
-                // If enabled.
+                    // If enabled.
                 } else {
                     // Close the connection.
                     fclose($fp);
 
                     $result = 'Failed to get server response.';
                 }
-
-            // If error messages display disabled.
+                // If error messages display disabled.
             } elseif ($this->show_errors == 0) {
                 $result = 0;
-            // If enabled.
+                // If enabled.
             } else {
-                $result = 'An error occurred while using sockets. '.$errstr.' ('.$errno.').';
+                $result = 'An error occurred while using sockets. ' . $errstr . ' (' . $errno . ').';
             }
-
-        // If error messages display disabled.
+            // If error messages display disabled.
         } elseif ($this->show_errors == 0) {
             $result = 0;
-        // If enabled.
+            // If enabled.
         } else {
             $result = 'Failed to get headers from server response to HTTP-request or "icy-metaint" header value.';
         }
@@ -361,23 +354,25 @@ class Mp3StreamTitle
      * As a result, the function returns information about the song
      * in the following format "artist name and song name".
      *
-     * @param  string  $streaming_url
-     * @return mixed
+     * @param string $streaming_url
+     * @return string|int
      */
-    public function sendFGC($streaming_url)
+    public function sendFGC(string $streaming_url): string|int
     {
         /* Find out from which byte the metadata will begin.
            If successful, continue to perform the function. */
         if ($offset = $this->getOffset($streaming_url)) {
             // HTTP-request headers.
             $options_method = "GET";
-            $options_header = "User-Agent: ".$this->user_agent."\r\n";
+            $options_header = "User-Agent: " . $this->user_agent . "\r\n";
             $options_header .= "icy-metadata: 1\r\n\r\n";
 
             $options = [
-                'http' => ['method'  => $options_method,
-                           'header'  => $options_header,
-                           'timeout' => 30]
+                'http' => [
+                    'method' => $options_method,
+                    'header' => $options_header,
+                    'timeout' => 30
+                ]
             ];
 
             // Create a thread context.
@@ -396,18 +391,17 @@ class Mp3StreamTitle
 
                 // Return the execution result of the function.
                 $result = $this->getSongInfo($metadata);
-            // If error messages display disabled.
+                // If error messages display disabled.
             } elseif ($this->show_errors == 0) {
                 $result = 0;
-            // If enabled.
+                // If enabled.
             } else {
                 $result = 'Failed to get server response.';
             }
-
-        // If error messages display disabled.
+            // If error messages display disabled.
         } elseif ($this->show_errors == 0) {
             $result = 0;
-        // If enabled.
+            // If enabled.
         } else {
             $result = 'Failed to get headers from server response to HTTP-request or "icy-metaint" header value.';
         }
