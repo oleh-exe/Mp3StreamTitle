@@ -95,27 +95,27 @@ class Mp3StreamTitle
                If successful, continue to perform the function. */
             if ($offset = $this->getOffset($streamingUrl)) {
                 // Find out how many bytes of data you need to get.
-                $data_byte = $offset + $this->metaMaxLength;
+                $dataByte = $offset + $this->metaMaxLength;
 
                 /* The callback-function returns the number of data bytes received or metadata.
                    The function is used as the value of the parameter "CURLOPT_WRITEFUNCTION". */
-                $write_function = function ($ch, $chunk) use ($data_byte, $offset, &$metadata) {
+                $writeFunction = function ($ch, $chunk) use ($dataByte, $offset, &$metadata) {
                     // Initialize variables.
                     static $data = '';
 
                     // Find out the length of the data.
-                    $data_length = strlen($data) + strlen($chunk);
+                    $dataLength = strlen($data) + strlen($chunk);
 
                     // If the length of the received data is greater than or equal to the desired length.
-                    if ($data_length >= $data_byte) {
+                    if ($dataLength >= $dataByte) {
                         // Save the data part into a variable.
-                        $data .= substr($chunk, 0, $data_byte - strlen($data));
+                        $data .= substr($chunk, 0, $dataByte - strlen($data));
 
                         // Find out the length of the metadata.
-                        $meta_length = ord(substr($data, $offset, 1)) * 16;
+                        $metaLength = ord(substr($data, $offset, 1)) * 16;
 
                         // Get metadata in the following format "StreamTitle='artist name and song name';".
-                        $metadata = substr($data, $offset, $meta_length);
+                        $metadata = substr($data, $offset, $metaLength);
 
                         // Interrupt receiving data (with an error "curl_errno: 23").
                         return -1;
@@ -141,7 +141,7 @@ class Mp3StreamTitle
                 curl_setopt($ch, CURLOPT_HTTPHEADER, ['icy-metadata: 1']);
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
                 curl_setopt($ch, CURLOPT_USERAGENT, $this->userAgent);
-                curl_setopt($ch, CURLOPT_WRITEFUNCTION, $write_function);
+                curl_setopt($ch, CURLOPT_WRITEFUNCTION, $writeFunction);
 
                 // Execute the request.
                 $tmp = @curl_exec($ch);
@@ -200,26 +200,26 @@ class Mp3StreamTitle
            If successful, continue to perform the function. */
         if ($offset = $this->getOffset($streamingUrl)) {
             // Parse URL.
-            $url_part = parse_url($streamingUrl);
+            $urlPart = parse_url($streamingUrl);
 
             // Find out protocol.
-            if ($url_part['scheme'] == 'https') {
+            if ($urlPart['scheme'] == 'https') {
                 $prefix = 'ssl://'; // If HTTPS, use the SSL protocol.
                 $port = 443; // If HTTPS, the port can only be 443.
             }
 
             // Find out port and protocol.
-            if (!empty($url_part['port']) && $url_part['scheme'] == 'http') {
-                $port = $url_part['port']; // If the HTTP protocol, then the port is non-standard.
+            if (!empty($urlPart['port']) && $urlPart['scheme'] == 'http') {
+                $port = $urlPart['port']; // If the HTTP protocol, then the port is non-standard.
             }
 
             // Find out path.
-            if (!empty($url_part['path'])) {
-                $path = $url_part['path'];
+            if (!empty($urlPart['path'])) {
+                $path = $urlPart['path'];
             }
 
             // Open connection.
-            if ($fp = @fsockopen($prefix . $url_part['host'], $port, $errno, $errstr, 30)) {
+            if ($fp = @fsockopen($prefix . $urlPart['host'], $port, $errno, $errstr, 30)) {
                 // HTTP-request headers.
                 $headers = "GET " . $path . " HTTP/1.0\r\n";
                 $headers .= "User-Agent: " . $this->userAgent . "\r\n";
@@ -228,10 +228,10 @@ class Mp3StreamTitle
                 // Send a request to the stream-server.
                 if (fwrite($fp, $headers)) {
                     // Find out how many bytes of data need to be received.
-                    $data_byte = $offset + $this->metaMaxLength;
+                    $dataByte = $offset + $this->metaMaxLength;
 
                     // Save the data part into the variable.
-                    $buffer = stream_get_contents($fp, $data_byte);
+                    $buffer = stream_get_contents($fp, $dataByte);
 
                     // Close the connection.
                     fclose($fp);
@@ -240,10 +240,10 @@ class Mp3StreamTitle
                     list($tmp, $body) = explode("\r\n\r\n", $buffer, 2);
 
                     // Find out length of metadata.
-                    $meta_length = ord(substr($body, $offset, 1)) * 16;
+                    $metaLength = ord(substr($body, $offset, 1)) * 16;
 
                     // Get metadata in the following format "StreamTitle='artist name and song name';".
-                    $metadata = substr($body, $offset, $meta_length);
+                    $metadata = substr($body, $offset, $metaLength);
 
                     // Return the result of the request.
                     $result = $this->getSongInfo($metadata);
@@ -292,14 +292,14 @@ class Mp3StreamTitle
            If successful, continue to perform the function. */
         if ($offset = $this->getOffset($streamingUrl)) {
             // HTTP-request headers.
-            $options_method = "GET";
-            $options_header = "User-Agent: " . $this->userAgent . "\r\n";
-            $options_header .= "icy-metadata: 1\r\n\r\n";
+            $optionsMethod = "GET";
+            $optionsHeader = "User-Agent: " . $this->userAgent . "\r\n";
+            $optionsHeader .= "icy-metadata: 1\r\n\r\n";
 
             $options = [
                 'http' => [
-                    'method' => $options_method,
-                    'header' => $options_header,
+                    'method' => $optionsMethod,
+                    'header' => $optionsHeader,
                     'timeout' => 30
                 ]
             ];
@@ -308,15 +308,15 @@ class Mp3StreamTitle
             $context = stream_context_create($options);
 
             // Find out how many bytes of data need to be received.
-            $data_byte = $offset + $this->metaMaxLength;
+            $dataByte = $offset + $this->metaMaxLength;
 
             // Open the stream using the HTTP-headers set above.
-            if ($buffer = @file_get_contents($streamingUrl, false, $context, 0, $data_byte)) {
+            if ($buffer = @file_get_contents($streamingUrl, false, $context, 0, $dataByte)) {
                 // Find out length of metadata.
-                $meta_length = ord(substr($buffer, $offset, 1)) * 16;
+                $metaLength = ord(substr($buffer, $offset, 1)) * 16;
 
                 // Get metadata in the following format "StreamTitle='artist name and song name';".
-                $metadata = substr($buffer, $offset, $meta_length);
+                $metadata = substr($buffer, $offset, $metaLength);
 
                 // Return the execution result of the function.
                 $result = $this->getSongInfo($metadata);
@@ -350,9 +350,9 @@ class Mp3StreamTitle
     {
         /* Find the position of the string "='" indicating the beginning of information about the
            song and find position of the string "';" which indicates the end of the song information. */
-        if (($info_start = strpos($metadata, '=\'')) && ($info_end = strpos($metadata, '\';'))) {
+        if (($infoStart = strpos($metadata, '=\'')) && ($infoEnd = strpos($metadata, '\';'))) {
             // Get information about the song in the following format "artist name and song name".
-            $result = substr($metadata, $info_start + 2, $info_end - ($info_start + 2));
+            $result = substr($metadata, $infoStart + 2, $infoEnd - ($infoStart + 2));
             // If error messages display disabled.
         } elseif ($this->showErrors == 0) {
             $result = 0;
@@ -378,14 +378,14 @@ class Mp3StreamTitle
         $result = 0;
 
         // HTTP-request headers.
-        $options_method = "GET";
-        $options_header = "User-Agent: " . $this->userAgent . "\r\n";
-        $options_header .= "icy-metadata: 1\r\n\r\n";
+        $optionsMethod = "GET";
+        $optionsHeader = "User-Agent: " . $this->userAgent . "\r\n";
+        $optionsHeader .= "icy-metadata: 1\r\n\r\n";
 
         $options = [
             'http' => [
-                'method' => $options_method,
-                'header' => $options_header,
+                'method' => $optionsMethod,
+                'header' => $optionsHeader,
                 'timeout' => 30
             ]
         ];
