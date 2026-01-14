@@ -399,7 +399,7 @@ class Mp3StreamTitle
             foreach ($headers as $h) {
                 /* Find out how many bytes of data from the stream you need to read before
                    the metadata begins (which contains the name of the artist and the name of the song). */
-                if (strpos($h, 'icy-metaint') !== false && ($result = explode(':', $h)[1])) {
+                if (str_contains($h, 'icy-metaint') && ($result = explode(':', $h)[1])) {
                     // Break the cycle.
                     break;
                 }
