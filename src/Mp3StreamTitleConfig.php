@@ -4,12 +4,13 @@ namespace Mp3StreamTitle;
 
 final class Mp3StreamTitleConfig
 {
-    public readonly int $sendType = Mp3StreamTitle::SEND_CURL;
+    public readonly int $sendType;
     public readonly string $userAgent;
     public readonly bool $showErrors;
     public readonly int $metaMaxLength;
 
     public function __construct(
+        int $sendType = Mp3StreamTitle::SEND_CURL,
         string $userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36',
         bool $showErrors = false,
         int $metaMaxLength = 4080
@@ -22,6 +23,7 @@ final class Mp3StreamTitleConfig
             throw new InvalidArgumentException('metaMaxLength must be no more than 4080 bytes');
         }
 
+        $this->sendType = $sendType;
         $this->userAgent = $userAgent;
         $this->showErrors = $showErrors;
         $this->metaMaxLength = $metaMaxLength;
