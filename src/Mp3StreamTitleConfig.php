@@ -4,9 +4,37 @@ namespace Mp3StreamTitle;
 
 final class Mp3StreamTitleConfig
 {
+    /**
+     * Indicate which function to use to send requests to the stream-server.
+     * 1 — cURL-function.
+     * 2 — Socket-function.
+     * 3 — FGC-function.
+     *
+     * @var int
+     */
     public readonly int $sendType;
+
+    /**
+     * The contents of our "User-Agent" HTTP-header.
+     *
+     * @var string
+     */
     public readonly string $userAgent;
+
+    /**
+     * Enable or disable the display of error messages.
+     * false — Error messages display disabled.
+     * true — Error messages display enabled.
+     *
+     * @var bool
+     */
     public readonly bool $showErrors;
+
+    /**
+     * Maximum metadata length in bytes.
+     *
+     * @var int
+     */
     public readonly int $metaMaxLength;
 
     public function __construct(
