@@ -20,13 +20,18 @@ namespace Mp3StreamTitle;
 
 final class Mp3StreamTitle
 {
-    public const SEND_CURL   = 1;
+    public const SEND_CURL = 1;
 
     public const SEND_SOCKET = 2;
 
-    public const SEND_FGC    = 3;
+    public const SEND_FGC = 3;
 
     private Mp3StreamTitleConfig $config;
+
+    public function __construct(?Mp3StreamTitleConfig $config = null)
+    {
+        $this->config = $config ?? new Mp3StreamTitleConfig();
+    }
 
     /**
      * The function takes as an argument a direct link to the stream of
@@ -34,20 +39,20 @@ final class Mp3StreamTitle
      * settings to send requests to the stream-server.
      *
      * @param string $streamingUrl
-     * @return int|string|Mp3StreamTitle
+     * @return string|int
      */
-    public function sendRequest(string $streamingUrl): int|string|static
+    public function sendRequest(string $streamingUrl): string|int
     {
-        // Use the cURL-function.
-        if ($this->sendType == 1) {
-            return $this->sendCurl($streamingUrl);
+        return match ($this->config->sendType) {
+            // Use the cURL-function.
+            self::SEND_CURL => $this->sendCurl($streamingUrl),
             // Use the Socket-function.
-        } elseif ($this->sendType == 2) {
-            return $this->sendSocket($streamingUrl);
+            self::SEND_SOCKET => $this->sendSocket($streamingUrl),
             // Use the FGC-function.
-        } else {
-            return $this->sendFGC($streamingUrl);
-        }
+            self::SEND_FGC => $this->sendFGC($streamingUrl),
+
+            default => $this->error('error.invalid_send_type'),
+        };
     }
 
     /**
