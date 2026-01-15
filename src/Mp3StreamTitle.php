@@ -29,39 +29,6 @@ final class Mp3StreamTitle
     private Mp3StreamTitleConfig $config;
 
     /**
-     * Indicate which function to use to send requests to the stream-server.
-     * 1 — cURL-function.
-     * 2 — Socket-function.
-     * 3 — FGC-function.
-     *
-     * @var int
-     */
-    private int $sendType = 1;
-
-    /**
-     * The contents of our "User-Agent" HTTP-header.
-     *
-     * @var string
-     */
-    private string $userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36';
-
-    /**
-     * Enable or disable the display of error messages.
-     * 0 — Error messages display disabled.
-     * 1 — Error messages display enabled.
-     *
-     * @var int
-     */
-    private int $showErrors = 0;
-
-    /**
-     * Maximum metadata length in bytes.
-     *
-     * @var int
-     */
-    private int $metaMaxLength = 5228;
-
-    /**
      * The function takes as an argument a direct link to the stream of
      * any online radio station and uses the function specified in the
      * settings to send requests to the stream-server.
