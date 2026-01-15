@@ -18,8 +18,16 @@
 
 namespace Mp3StreamTitle;
 
-class Mp3StreamTitle
+final class Mp3StreamTitle
 {
+    public const SEND_CURL   = 1;
+
+    public const SEND_SOCKET = 2;
+
+    public const SEND_FGC    = 3;
+
+    private Mp3StreamTitleConfig $config;
+
     /**
      * Indicate which function to use to send requests to the stream-server.
      * 1 — cURL-function.
