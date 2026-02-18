@@ -27,21 +27,21 @@ final class Mp3StreamTitle
      *
      * @var int
      */
-    private const SEND_CURL = 1;
+    public const SEND_CURL = 1;
 
     /**
      * Method sendSocket.
      *
      * @var int
      */
-    private const SEND_SOCKET = 2;
+    public const SEND_SOCKET = 2;
 
     /**
      * Method sendFGC.
      *
      * @var int
      */
-    private const SEND_FGC = 3;
+    public const SEND_FGC = 3;
 
     /**
      * Configuration settings for the application.
