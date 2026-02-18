@@ -379,9 +379,9 @@ final class Mp3StreamTitle
      * "icy-metaint" header and returns its value.
      *
      * @param string $streamingUrl
-     * @return string|int
+     * @return int
      */
-    private function getOffset(string $streamingUrl): string|int
+    private function getOffset(string $streamingUrl): int
     {
         $result = 0;
 
@@ -402,15 +402,14 @@ final class Mp3StreamTitle
         $context = stream_context_create($options);
 
         // Get the headers from the server response to the HTTP-request.
-        if ($headers = get_headers($streamingUrl, false, $context)) {
+        if ($headers = get_headers($streamingUrl, true, $context)) {
             // Looking for the header "icy-metaint".
-            foreach ($headers as $h) {
+            if (isset($headers['icy-metaint'])) {
+                $value = $headers['icy-metaint'];
                 /* Find out how many bytes of data from the stream you need to read before
                    the metadata begins (which contains the name of the artist and the name of the song). */
-                if (str_contains($h, 'icy-metaint') && ($result = explode(':', $h)[1])) {
-                    // Break the cycle.
-                    break;
-                }
+                $result = is_array($value) ? end($value) : $value;
+                $result = intval($result);
             }
         }
         return $result;
