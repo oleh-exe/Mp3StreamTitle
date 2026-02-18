@@ -15,6 +15,7 @@ error_log
 
 # Composer Dependencies
 vendor/
+composer.lock
 
 # Cache Files
 cache/
