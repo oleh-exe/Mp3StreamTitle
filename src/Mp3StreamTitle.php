@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright 2020-2025 Oleh Kovalenko
+ * Copyright 2020-2026 Oleh Kovalenko
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,32 @@ namespace Mp3StreamTitle;
 
 final class Mp3StreamTitle
 {
+    /**
+     * Method sendCurl.
+     *
+     * @var int
+     */
     public const SEND_CURL = 1;
 
+    /**
+     * Method sendSocket.
+     *
+     * @var int
+     */
     public const SEND_SOCKET = 2;
 
+    /**
+     * Method sendFGC.
+     *
+     * @var int
+     */
     public const SEND_FGC = 3;
 
+    /**
+     * Configuration settings for the application.
+     *
+     * @var Mp3StreamTitleConfig|null
+     */
     private Mp3StreamTitleConfig $config;
 
     /**
