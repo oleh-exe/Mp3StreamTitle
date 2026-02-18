@@ -37,6 +37,18 @@ final class Mp3StreamTitleConfig
      */
     public readonly int $metaMaxLength;
 
+    /**
+     * Constructor for initializing the Mp3StreamTitle object with specified parameters.
+     *
+     * @param int $sendType The method used to get the stream title. Defaults to Mp3StreamTitle::SEND_CURL.
+     * @param string $userAgent The user agent string for HTTP requests. Cannot be empty.
+     * @param bool $showErrors A flag to indicate whether errors should be displayed. Defaults to false.
+     * @param int $metaMaxLength The maximum length of metadata in bytes. Must not exceed 4080 bytes.
+     *
+     * @return void
+     *
+     * @throws InvalidArgumentException If the user agent is empty or metaMaxLength exceeds 4080 bytes.
+     */
     public function __construct(
         int $sendType = Mp3StreamTitle::SEND_CURL,
         string $userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36',

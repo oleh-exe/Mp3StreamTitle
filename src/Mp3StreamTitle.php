@@ -28,6 +28,13 @@ final class Mp3StreamTitle
 
     private Mp3StreamTitleConfig $config;
 
+    /**
+     * Constructor to initialize the Mp3StreamTitle class with a configuration object.
+     * If no configuration object is provided, a default instance of Mp3StreamTitleConfig is created.
+     *
+     * @param Mp3StreamTitleConfig|null $config The configuration object for Mp3StreamTitle. Defaults to null.
+     * @return void
+     */
     public function __construct(?Mp3StreamTitleConfig $config = null)
     {
         $this->config = $config ?? new Mp3StreamTitleConfig();
