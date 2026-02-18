@@ -18,6 +18,8 @@
 
 namespace Mp3StreamTitle;
 
+use RuntimeException;
+
 final class Mp3StreamTitle
 {
     /**
@@ -25,21 +27,21 @@ final class Mp3StreamTitle
      *
      * @var int
      */
-    public const SEND_CURL = 1;
+    private const SEND_CURL = 1;
 
     /**
      * Method sendSocket.
      *
      * @var int
      */
-    public const SEND_SOCKET = 2;
+    private const SEND_SOCKET = 2;
 
     /**
      * Method sendFGC.
      *
      * @var int
      */
-    public const SEND_FGC = 3;
+    private const SEND_FGC = 3;
 
     /**
      * Configuration settings for the application.
@@ -88,8 +90,9 @@ final class Mp3StreamTitle
      * server. As a result, the function returns information about the song
      * in the following format "artist name and song name".
      *
-     * @param string $streamingUrl
-     * @return string|int
+     * @param string $streamingUrl A direct URL to the online radio stream.
+     * @return string|int Metadata containing song information or an error code/message.
+     * @throws RuntimeException If the ext-curl extension is not installed or cURL functions are unavailable.
      */
     private function sendCurl(string $streamingUrl): string|int
     {
@@ -97,93 +100,92 @@ final class Mp3StreamTitle
         $metadata = '';
 
         // Checking if we can use cURL.
-        if (extension_loaded('curl') && function_exists('curl_init')) {
-            /* Find out from which byte the metadata will begin.
-               If successful, continue to perform the function. */
-            if ($offset = $this->getOffset($streamingUrl)) {
-                // Find out how many bytes of data you need to get.
-                $dataByte = $offset + $this->metaMaxLength;
+        if (!extension_loaded('curl') || !function_exists('curl_init')) {
+            throw new RuntimeException(
+                'The ext-curl extension is required to use Mp3StreamTitle'
+            );
+        }
 
-                /* The callback-function returns the number of data bytes received or metadata.
-                   The function is used as the value of the parameter "CURLOPT_WRITEFUNCTION". */
-                $writeFunction = function ($ch, $chunk) use ($dataByte, $offset, &$metadata) {
-                    // Initialize variables.
-                    static $data = '';
+        /* Find out from which byte the metadata will begin.
+           If successful, continue to perform the function. */
+        if ($offset = $this->getOffset($streamingUrl)) {
+            // Find out how many bytes of data you need to get.
+            $dataByte = $offset + $this->metaMaxLength;
 
-                    // Find out the length of the data.
-                    $dataLength = strlen($data) + strlen($chunk);
+            /* The callback-function returns the number of data bytes received or metadata.
+               The function is used as the value of the parameter "CURLOPT_WRITEFUNCTION". */
+            $writeFunction = function ($ch, $chunk) use ($dataByte, $offset, &$metadata) {
+                // Initialize variables.
+                static $data = '';
 
-                    // If the length of the received data is greater than or equal to the desired length.
-                    if ($dataLength >= $dataByte) {
-                        // Save the data part into a variable.
-                        $data .= substr($chunk, 0, $dataByte - strlen($data));
+                // Find out the length of the data.
+                $dataLength = strlen($data) + strlen($chunk);
 
-                        // Find out the length of the metadata.
-                        $metaLength = ord(substr($data, $offset, 1)) * 16;
-
-                        // Get metadata in the following format "StreamTitle='artist name and song name';".
-                        $metadata = substr($data, $offset, $metaLength);
-
-                        // Interrupt receiving data (with an error "curl_errno: 23").
-                        return -1;
-                    }
-
+                // If the length of the received data is greater than or equal to the desired length.
+                if ($dataLength >= $dataByte) {
                     // Save the data part into a variable.
-                    $data .= $chunk;
+                    $data .= substr($chunk, 0, $dataByte - strlen($data));
 
-                    // Return the number of received data bytes.
-                    return strlen($chunk);
-                };
+                    // Find out the length of the metadata.
+                    $metaLength = ord(substr($data, $offset, 1)) * 16;
 
-                // Initialize the cURL session.
-                $ch = curl_init();
+                    // Get metadata in the following format "StreamTitle='artist name and song name';".
+                    $metadata = substr($data, $offset, $metaLength);
 
-                // Set the parameters for the session.
-                curl_setopt($ch, CURLOPT_URL, $streamingUrl);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-                curl_setopt($ch, CURLOPT_HEADER, 0);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, ['icy-metadata: 1']);
-                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                curl_setopt($ch, CURLOPT_USERAGENT, $this->userAgent);
-                curl_setopt($ch, CURLOPT_WRITEFUNCTION, $writeFunction);
-
-                // Execute the request.
-                $tmp = @curl_exec($ch);
-
-                // If there are errors we save them into variables.
-                $errno = curl_errno($ch);
-                $error = curl_error($ch);
-
-                // End the session.
-                curl_close($ch);
-
-                // Return the result of the request.
-                if ($metadata) {
-                    $result = $this->getSongInfo($metadata);
-                    // If error messages display disabled.
-                } elseif ($this->showErrors == 0) {
-                    $result = 0;
-                    // If enabled.
-                } else {
-                    $result = $error . ' (' . $errno . ').';
+                    // Interrupt receiving data (with an error "curl_errno: 23").
+                    return -1;
                 }
+
+                // Save the data part into a variable.
+                $data .= $chunk;
+
+                // Return the number of received data bytes.
+                return strlen($chunk);
+            };
+
+            // Initialize the cURL session.
+            $ch = curl_init();
+
+            // Set the parameters for the session.
+            curl_setopt($ch, CURLOPT_URL, $streamingUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_HEADER, 0);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['icy-metadata: 1']);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_USERAGENT, $this->config->userAgent);
+            curl_setopt($ch, CURLOPT_WRITEFUNCTION, $writeFunction);
+
+            // Execute the request.
+            $tmp = curl_exec($ch);
+
+            // If there are errors we save them into variables.
+            $errno = curl_errno($ch);
+            $error = curl_error($ch);
+
+            // End the session.
+            curl_close($ch);
+
+            // Return the result of the request.
+            if ($metadata) {
+                $result = $this->getSongInfo($metadata);
                 // If error messages display disabled.
             } elseif ($this->showErrors == 0) {
                 $result = 0;
                 // If enabled.
             } else {
-                $result = 'Failed to get headers from server response to HTTP-request or "icy-metaint" header value.';
+                $result = $error . ' (' . $errno . ').';
             }
             // If error messages display disabled.
         } elseif ($this->showErrors == 0) {
             $result = 0;
             // If enabled.
         } else {
-            $result = 'There is no way to use the cURL library on this hosting.';
+            $result = 'Failed to get headers from server response to HTTP-request or "icy-metaint" header value.';
         }
+
         return $result;
     }
 
@@ -226,10 +228,10 @@ final class Mp3StreamTitle
             }
 
             // Open connection.
-            if ($fp = @fsockopen($prefix . $urlPart['host'], $port, $errno, $errstr, 30)) {
+            if ($fp = fsockopen($prefix . $urlPart['host'], $port, $errno, $errstr, 30)) {
                 // HTTP-request headers.
                 $headers = "GET " . $path . " HTTP/1.0\r\n";
-                $headers .= "User-Agent: " . $this->userAgent . "\r\n";
+                $headers .= "User-Agent: " . $this->config->userAgent . "\r\n";
                 $headers .= "icy-metadata: 1\r\n\r\n";
 
                 // Send a request to the stream-server.
@@ -300,7 +302,7 @@ final class Mp3StreamTitle
         if ($offset = $this->getOffset($streamingUrl)) {
             // HTTP-request headers.
             $optionsMethod = "GET";
-            $optionsHeader = "User-Agent: " . $this->userAgent . "\r\n";
+            $optionsHeader = "User-Agent: " . $this->config->userAgent . "\r\n";
             $optionsHeader .= "icy-metadata: 1\r\n\r\n";
 
             $options = [
@@ -318,7 +320,7 @@ final class Mp3StreamTitle
             $dataByte = $offset + $this->metaMaxLength;
 
             // Open the stream using the HTTP-headers set above.
-            if ($buffer = @file_get_contents($streamingUrl, false, $context, 0, $dataByte)) {
+            if ($buffer = file_get_contents($streamingUrl, false, $context, 0, $dataByte)) {
                 // Find out length of metadata.
                 $metaLength = ord(substr($buffer, $offset, 1)) * 16;
 
@@ -381,12 +383,11 @@ final class Mp3StreamTitle
      */
     private function getOffset(string $streamingUrl): string|int
     {
-        // Initialize variables.
         $result = 0;
 
         // HTTP-request headers.
         $optionsMethod = "GET";
-        $optionsHeader = "User-Agent: " . $this->userAgent . "\r\n";
+        $optionsHeader = "User-Agent: " . $this->config->userAgent . "\r\n";
         $optionsHeader .= "icy-metadata: 1\r\n\r\n";
 
         $options = [
@@ -401,7 +402,7 @@ final class Mp3StreamTitle
         $context = stream_context_create($options);
 
         // Get the headers from the server response to the HTTP-request.
-        if ($headers = @get_headers($streamingUrl, 0, $context)) {
+        if ($headers = get_headers($streamingUrl, false, $context)) {
             // Looking for the header "icy-metaint".
             foreach ($headers as $h) {
                 /* Find out how many bytes of data from the stream you need to read before
