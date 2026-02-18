@@ -1,0 +1,44 @@
+{
+  "name": "oleh-exe/mp3-stream-title",
+  "description": "Fetch and parse current track metadata from Icecast and Shoutcast MP3 streams.",
+  "type": "library",
+  "keywords": [
+    "icecast",
+    "shoutcast",
+    "mp3",
+    "stream",
+    "metadata",
+    "webradio"
+  ],
+  "homepage": "https://github.com/oleh-exe/mp3-stream-title",
+  "license": "Apache-2.0",
+  "authors": [
+    {
+      "name": "Oleh Kovalenko",
+      "role": "Developer"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/oleh-exe/mp3-stream-title/issues",
+    "source": "https://github.com/oleh-exe/mp3-stream-title"
+  },
+  "require": {
+    "php": "^8.2",
+    "ext-curl": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Mp3StreamTitle\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Mp3StreamTitle\\Tests\\": "tests/"
+    }
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.0"
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
