@@ -114,7 +114,7 @@ final class Mp3StreamTitle
             );
         } else {
             // Find out how many bytes of data need to get.
-            $dataByte = $offset + $this->metaMaxLength;
+            $dataByte = $offset + $this->config->metaMaxLength;
 
             /* The callback-function returns the number of data bytes received or metadata.
                The function is used as the value of the parameter "CURLOPT_WRITEFUNCTION". */
@@ -236,7 +236,7 @@ final class Mp3StreamTitle
                 // Send a request to the stream-server.
                 if (fwrite($fp, $headers)) {
                     // Find out how many bytes of data need to be received.
-                    $dataByte = $offset + $this->metaMaxLength;
+                    $dataByte = $offset + $this->config->metaMaxLength;
 
                     // Save the data part into the variable.
                     $buffer = stream_get_contents($fp, $dataByte);
@@ -316,7 +316,7 @@ final class Mp3StreamTitle
             $context = stream_context_create($options);
 
             // Find out how many bytes of data need to be received.
-            $dataByte = $offset + $this->metaMaxLength;
+            $dataByte = $offset + $this->config->metaMaxLength;
 
             // Open the stream using the HTTP-headers set above.
             if ($buffer = file_get_contents($streamingUrl, false, $context, 0, $dataByte)) {
