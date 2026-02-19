@@ -108,8 +108,14 @@ final class Mp3StreamTitle
 
         /* Find out from which byte the metadata will begin.
            If successful, continue to perform the function. */
-        if ($offset = $this->getOffset($streamingUrl)) {
-            // Find out how many bytes of data you need to get.
+        $offset = $this->getOffset($streamingUrl);
+
+        if (!$offset) {
+            throw new RuntimeException(
+                'Failed to get headers from server response to HTTP-request or "icy-metaint" header value'
+            );
+        } else {
+            // Find out how many bytes of data need to get.
             $dataByte = $offset + $this->metaMaxLength;
 
             /* The callback-function returns the number of data bytes received or metadata.
@@ -179,11 +185,6 @@ final class Mp3StreamTitle
                 $result = $error . ' (' . $errno . ').';
             }
             // If error messages display disabled.
-        } elseif ($this->showErrors == 0) {
-            $result = 0;
-            // If enabled.
-        } else {
-            $result = 'Failed to get headers from server response to HTTP-request or "icy-metaint" header value.';
         }
 
         return $result;
