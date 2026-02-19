@@ -35,7 +35,7 @@ final class IcyMetadataStreamParser
         }
 
         if ($metaMaxLength <= 0) {
-            throw new \InvalidArgumentException('Meta max length must be greater than 0');
+            throw new \InvalidArgumentException('Meta-max length must be greater than 0');
         }
     }
 
