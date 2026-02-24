@@ -49,14 +49,17 @@ final class IcyMetadataStreamParser
      */
     public function append(string $chunk): bool
     {
+        // Save the data part into a variable.
         $this->buffer .= $chunk;
 
+        // Find out how many bytes of data need to get.
         $requiredLength = $this->offset + $this->metaMaxLength;
 
         if (strlen($this->buffer) < $requiredLength) {
             return false;
         }
 
+        // Find out the length of the metadata.
         $metaLength = ord($this->buffer[$this->offset]) * 16;
 
         if ($metaLength === 0) {
@@ -64,6 +67,10 @@ final class IcyMetadataStreamParser
             return true;
         }
 
+        // ICY metadata block structure:
+        // [offset]      = length byte (metadata length / 16)
+        // [offset + 1]  = start of actual metadata (e.g. StreamTitle='...';)
+        // Metadata format example: StreamTitle='artist name and song name';
         $this->metadata = substr(
             $this->buffer,
             $this->offset + 1,
