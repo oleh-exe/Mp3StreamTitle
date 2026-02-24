@@ -113,35 +113,20 @@ final class Mp3StreamTitle
                 'Failed to get headers from server response to HTTP-request or "icy-metaint" header value'
             );
         } else {
-            // Find out how many bytes of data need to get.
-            $dataByte = $offset + $this->config->metaMaxLength;
+            $parser = new IcyMetadataStreamParser(
+                $offset,
+                $this->metaMaxLength
+            );
 
             /* The callback-function returns the number of data bytes received or metadata.
                The function is used as the value of the parameter "CURLOPT_WRITEFUNCTION". */
-            $writeFunction = function ($ch, $chunk) use ($dataByte, $offset, &$metadata) {
-                // Initialize variables.
-                static $data = '';
+            $writeFunction = function ($ch, string $chunk) use ($parser): int {
+                $finished = $parser->append($chunk);
 
-                // Find out the length of the data.
-                $dataLength = strlen($data) + strlen($chunk);
-
-                // If the length of the received data is greater than or equal to the desired length.
-                if ($dataLength >= $dataByte) {
-                    // Save the data part into a variable.
-                    $data .= substr($chunk, 0, $dataByte - strlen($data));
-
-                    // Find out the length of the metadata.
-                    $metaLength = ord(substr($data, $offset, 1)) * 16;
-
-                    // Get metadata in the following format "StreamTitle='artist name and song name';".
-                    $metadata = substr($data, $offset, $metaLength);
-
+                if ($finished) {
                     // Interrupt receiving data (with an error "curl_errno: 23").
                     return -1;
                 }
-
-                // Save the data part into a variable.
-                $data .= $chunk;
 
                 // Return the number of received data bytes.
                 return strlen($chunk);
@@ -236,7 +221,8 @@ final class Mp3StreamTitle
                 // Send a request to the stream-server.
                 if (fwrite($fp, $headers)) {
                     // Find out how many bytes of data need to be received.
-                    $dataByte = $offset + $this->config->metaMaxLength;
+                    //$dataByte = $offset + $this->config->metaMaxLength;
+                    $dataByte = $offset + 1 + $this->config->metaMaxLength;
 
                     // Save the data part into the variable.
                     $buffer = stream_get_contents($fp, $dataByte);
@@ -316,7 +302,8 @@ final class Mp3StreamTitle
             $context = stream_context_create($options);
 
             // Find out how many bytes of data need to be received.
-            $dataByte = $offset + $this->config->metaMaxLength;
+            //$dataByte = $offset + $this->config->metaMaxLength;
+            $dataByte = $offset + 1 + $this->config->metaMaxLength;
 
             // Open the stream using the HTTP-headers set above.
             if ($buffer = file_get_contents($streamingUrl, false, $context, 0, $dataByte)) {
