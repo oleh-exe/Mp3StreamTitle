@@ -22,8 +22,6 @@ final class IcyMetadataStreamParser
      * @param int $offset The offset value, which must be greater than 0.
      * @param int $metaMaxLength The maximum length for meta-information, which must be greater than 0.
      *
-     * @return void
-     *
      * @throws \InvalidArgumentException If $offset or $metaMaxLength are less than or equal to 0.
      */
     public function __construct(
@@ -53,7 +51,7 @@ final class IcyMetadataStreamParser
         $this->buffer .= $chunk;
 
         // Find out how many bytes of data need to get.
-        $requiredLength = $this->offset + $this->metaMaxLength;
+        $requiredLength = $this->offset + 1 + $this->metaMaxLength;
 
         if (strlen($this->buffer) < $requiredLength) {
             return false;
