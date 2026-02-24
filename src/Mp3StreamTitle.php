@@ -18,6 +18,10 @@
 
 namespace Mp3StreamTitle;
 
+use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
+use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
+use RuntimeException;
+
 final class Mp3StreamTitle
 {
     /**
@@ -46,7 +50,7 @@ final class Mp3StreamTitle
      *
      * @var Mp3StreamTitleConfig|null
      */
-    private Mp3StreamTitleConfig $config;
+    private ?Mp3StreamTitleConfig $config;
 
     /**
      * Constructor to initialize the Mp3StreamTitle class with a configuration object.
@@ -90,7 +94,7 @@ final class Mp3StreamTitle
      *
      * @param string $streamingUrl A direct URL to the online radio stream.
      * @return string|int Metadata containing song information or an error code/message.
-     * @throws \RuntimeException If the ext-curl extension is not installed or cURL functions are unavailable.
+     * @throws RuntimeException If the ext-curl extension is not installed or cURL functions are unavailable.
      */
     private function sendCurl(string $streamingUrl): string|int
     {
@@ -99,7 +103,7 @@ final class Mp3StreamTitle
 
         // Checking if we can use cURL.
         if (!extension_loaded('curl') || !function_exists('curl_init')) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 'The ext-curl extension is required to use Mp3StreamTitle'
             );
         }
@@ -109,13 +113,13 @@ final class Mp3StreamTitle
         $offset = $this->getOffset($streamingUrl);
 
         if (!$offset) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 'Failed to get headers from server response to HTTP-request or "icy-metaint" header value'
             );
         } else {
             $parser = new IcyMetadataStreamParser(
                 $offset,
-                $this->metaMaxLength
+                $this->config->metaMaxLength
             );
 
             /* The callback-function returns the number of data bytes received or metadata.
