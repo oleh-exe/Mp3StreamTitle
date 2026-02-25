@@ -21,7 +21,7 @@ namespace Mp3StreamTitle\Application\Config;
 
 use Mp3StreamTitle\Mp3StreamTitle;
 
-final class Mp3StreamTitleConfig
+final readonly class Mp3StreamTitleConfig
 {
     /**
      * Indicate which function to use to send requests to the stream-server.
@@ -31,14 +31,14 @@ final class Mp3StreamTitleConfig
      *
      * @var int
      */
-    public readonly int $sendType;
+    public int $sendType;
 
     /**
      * The contents of our "User-Agent" HTTP-header.
      *
      * @var string
      */
-    public readonly string $userAgent;
+    public string $userAgent;
 
     /**
      * Enable or disable the display of error messages.
@@ -47,14 +47,14 @@ final class Mp3StreamTitleConfig
      *
      * @var bool
      */
-    public readonly bool $showErrors;
+    public bool $showErrors;
 
     /**
      * Maximum metadata length in bytes.
      *
      * @var int
      */
-    public readonly int $metaMaxLength;
+    public int $metaMaxLength;
 
     /**
      * Constructor for initializing the Mp3StreamTitle object with specified parameters.
