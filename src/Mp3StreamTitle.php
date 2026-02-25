@@ -20,6 +20,7 @@ declare(strict_types=1);
 namespace Mp3StreamTitle;
 
 use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
+use Mp3StreamTitle\Infrastructure\Http\CurlHttpClient;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
 use RuntimeException;
 
@@ -125,7 +126,7 @@ final class Mp3StreamTitle
 
             /* The callback-function returns the number of data bytes received or metadata.
                The function is used as the value of the parameter "CURLOPT_WRITEFUNCTION". */
-            $writeFunction = function ($ch, string $chunk) use ($parser): int {
+            $callback = function ($ch, string $chunk) use ($parser): int {
                 $finished = $parser->append($chunk);
 
                 if ($finished) {
@@ -137,30 +138,7 @@ final class Mp3StreamTitle
                 return strlen($chunk);
             };
 
-            // Initialize the cURL session.
-            $ch = curl_init();
-
-            // Set the parameters for the session.
-            curl_setopt($ch, CURLOPT_URL, $streamingUrl);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            curl_setopt($ch, CURLOPT_HEADER, 0);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['icy-metadata: 1']);
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_USERAGENT, $this->config->userAgent);
-            curl_setopt($ch, CURLOPT_WRITEFUNCTION, $writeFunction);
-
-            // Execute the request.
-            $tmp = curl_exec($ch);
-
-            // If there are errors we save them into variables.
-            $errno = curl_errno($ch);
-            $error = curl_error($ch);
-
-            // End the session.
-            curl_close($ch);
+            $client = new CurlHttpClient(get_object_vars($this->config));
 
             // Return the result of the request.
             if ($metadata) {
