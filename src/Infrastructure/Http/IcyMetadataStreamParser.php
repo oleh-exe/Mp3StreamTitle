@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http;
 
+use InvalidArgumentException;
+
 final class IcyMetadataStreamParser
 {
     /**
@@ -22,18 +24,18 @@ final class IcyMetadataStreamParser
      * @param int $offset The offset value, which must be greater than 0.
      * @param int $metaMaxLength The maximum length for meta-information, which must be greater than 0.
      *
-     * @throws \InvalidArgumentException If $offset or $metaMaxLength are less than or equal to 0.
+     * @throws InvalidArgumentException If $offset or $metaMaxLength are less than or equal to 0.
      */
     public function __construct(
         private readonly int $offset,
         private readonly int $metaMaxLength
     ) {
         if ($offset <= 0) {
-            throw new \InvalidArgumentException('Offset must be greater than 0');
+            throw new InvalidArgumentException('Offset must be greater than 0');
         }
 
         if ($metaMaxLength <= 0) {
-            throw new \InvalidArgumentException('Meta-max length must be greater than 0');
+            throw new InvalidArgumentException('Meta-max length must be greater than 0');
         }
     }
 
