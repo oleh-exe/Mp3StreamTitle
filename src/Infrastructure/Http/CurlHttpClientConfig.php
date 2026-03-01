@@ -59,6 +59,14 @@ final readonly class CurlHttpClientConfig
             throw new InvalidArgumentException('User-Agent cannot be empty');
         }
 
+        if ($timeout <= 0) {
+            throw new InvalidArgumentException('Timeout must be greater than 0 seconds');
+        }
+
+        if (!in_array($verifyHost, [0, 2], true)) {
+            throw new InvalidArgumentException('verifyHost must be 0 or 2');
+        }
+
         $this->userAgent = $userAgent;
         $this->timeout = $timeout;
         $this->verifyPeer = $verifyPeer;
