@@ -28,11 +28,19 @@ readonly class CurlHttpClient
      */
     private CurlHttpClientConfig $config;
 
+    /**
+     * @param CurlHttpClientConfig $config
+     */
     public function __construct(CurlHttpClientConfig $config)
     {
         $this->config = $config;
     }
 
+    /**
+     * @param string $streamingUrl
+     * @param callable $callback
+     * @return void
+     */
     public function getStream(string $streamingUrl, callable $callback): void
     {
         if ($streamingUrl === '') {
@@ -80,7 +88,7 @@ readonly class CurlHttpClient
         // If there are errors we save them into variables.
         $errno = curl_errno($ch);
         $error = curl_error($ch);
-        $httpCode = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         // End the session.
         curl_close($ch);
