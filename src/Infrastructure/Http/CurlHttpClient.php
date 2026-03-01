@@ -23,10 +23,11 @@ use Closure;
 
 readonly class CurlHttpClient
 {
+
     /**
-     * @var array
+     * @var CurlHttpClientConfig
      */
-    private array $options;
+    private CurlHttpClientConfig $config;
 
     /**
      * @var array
@@ -38,41 +39,13 @@ readonly class CurlHttpClient
      */
     private int $seconds;
 
-    /**
-     * @var Closure
-     */
-    private Closure $callback;
-
-    /**
-     * @var string
-     */
-    private string $userAgent;
-
-    /**
-     * @var string
-     */
-    private string $streamingUrl;
-
-    /**
-     * @param array $options
-     */
-    public function __construct(
-        array $options = [],
-        //string $streamingUrl,
-        //string $userAgent,
-        //Closure $callback
-    )
+    public function __construct(CurlHttpClientConfig $config)
     {
-        //$this->streamingUrl = $streamingUrl;
-        //$this->userAgent = $userAgent;
-        //$this->callback = $callback;
-        $this->options = $options;
+        $this->config = $config;
     }
 
-    public function getStream(
-        string $url,
-        callable $onChunk
-    ): void {
+    public function getStream(string $url, Closure $callback): void
+    {
         // Initialize the cURL session.
         $ch = curl_init();
 
@@ -85,8 +58,8 @@ readonly class CurlHttpClient
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['icy-metadata: 1']);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->options['userAgent']);
-        curl_setopt($ch, CURLOPT_WRITEFUNCTION, $onChunk);
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->config->userAgent);
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, $callback);
 
         // Execute the request.
         curl_exec($ch);
@@ -118,9 +91,12 @@ readonly class CurlHttpClient
     }
 
     /**
+     * @param $ch
      * @return void
      */
-    public function close(): void
+    public function close($ch): void
     {
+        // End the session.
+        curl_close($ch);
     }
 }
