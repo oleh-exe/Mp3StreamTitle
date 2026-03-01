@@ -21,6 +21,7 @@ namespace Mp3StreamTitle;
 
 use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClient;
+use Mp3StreamTitle\Infrastructure\Http\CurlHttpClientConfig;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
 use RuntimeException;
 
@@ -138,7 +139,12 @@ final class Mp3StreamTitle
                 return strlen($chunk);
             };
 
-            $client = new CurlHttpClient(get_object_vars($this->config));
+            $client = new CurlHttpClient(
+                new CurlHttpClientConfig(
+                    $this->config->userAgent,
+                )
+            );
+            $client->getStream($streamingUrl, $callback);
 
             // Return the result of the request.
             if ($metadata) {
