@@ -39,21 +39,21 @@ final readonly class CurlHttpClientConfig
     public bool $verifyPeer;
 
     /**
-     * @var bool
+     * @var int
      */
-    public bool $verifyHost;
+    public int $verifyHost;
 
     /**
      * @param string $userAgent
      * @param int $timeout
      * @param bool $verifyPeer
-     * @param bool $verifyHost
+     * @param int $verifyHost
      */
     public function __construct(
         string $userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36',
         int $timeout = 30,
         bool $verifyPeer = true,
-        bool $verifyHost = true,
+        int $verifyHost = 2,
     ) {
         if ($userAgent === '') {
             throw new InvalidArgumentException('User-Agent cannot be empty');
