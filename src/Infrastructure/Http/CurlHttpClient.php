@@ -19,50 +19,60 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http;
 
-use Closure;
+use InvalidArgumentException;
 
 readonly class CurlHttpClient
 {
-
     /**
      * @var CurlHttpClientConfig
      */
     private CurlHttpClientConfig $config;
-
-    /**
-     * @var array|null
-     */
-    private ?array $headers;
-
-    /**
-     * @var int|null
-     */
-    private ?int $seconds;
 
     public function __construct(CurlHttpClientConfig $config)
     {
         $this->config = $config;
     }
 
-    public function getStream(string $streamingUrl, Closure $callback): void
+    public function getStream(string $streamingUrl, callable $callback): void
     {
+        if ($streamingUrl === '') {
+            throw new InvalidArgumentException('URL cannot be empty.');
+        }
+
         // Initialize the cURL session.
         $ch = curl_init();
 
-        $headers = $this->headers ?? ['icy-metadata: 1'];
-        $timeout = $this->seconds ?? $this->config->timeout;
+        if ($ch === false) {
+            throw new CurlHttpException('Failed to initialize cURL.');
+        }
+
+        $manuallyInterrupted = false;
 
         // Set the parameters for the session.
-        curl_setopt($ch, CURLOPT_URL, $streamingUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $this->config->verifyPeer);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $this->config->verifyHost);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->config->userAgent);
-        curl_setopt($ch, CURLOPT_WRITEFUNCTION, $callback);
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $streamingUrl,
+            CURLOPT_HEADER => false,
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_SSL_VERIFYPEER => $this->config->verifyPeer,
+            CURLOPT_SSL_VERIFYHOST => $this->config->verifyHost,
+            CURLOPT_TIMEOUT => $this->config->timeout,
+            CURLOPT_HTTPHEADER => ['Icy-MetaData: 1'],
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_USERAGENT => $this->config->userAgent,
+            CURLOPT_WRITEFUNCTION => function ($ch, string $chunk) use ($callback, &$manuallyInterrupted): int {
+                $shouldContinue = $callback($chunk);
+
+                if ($shouldContinue === false) {
+                    $manuallyInterrupted = true;
+
+                    // Interrupt receiving data (with an error "curl_errno: 23").
+                    return -1;
+                }
+
+                // Return the number of received data bytes.
+                return strlen($chunk);
+            },
+        ]);
 
         // Execute the request.
         curl_exec($ch);
@@ -70,36 +80,28 @@ readonly class CurlHttpClient
         // If there are errors we save them into variables.
         $errno = curl_errno($ch);
         $error = curl_error($ch);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
 
         // End the session.
         curl_close($ch);
-    }
 
-    /**
-     * @param array|null $headers
-     * @return void
-     */
-    public function setHeaders(?array $headers = null): void
-    {
-        $this->headers = $headers;
-    }
+        // If we intentionally interrupted the transfer → not an error
+        if ($manuallyInterrupted && $errno === CURLE_WRITE_ERROR) {
+            return;
+        }
 
-    /**
-     * @param int|null $seconds
-     * @return void
-     */
-    public function setTimeout(?int $seconds = null): void
-    {
-        $this->seconds = $seconds;
-    }
+        if ($errno !== 0) {
+            throw new CurlHttpException(
+                sprintf('cURL error (%d): %s', $errno, $error),
+                $errno
+            );
+        }
 
-    /**
-     * @param $ch
-     * @return void
-     */
-    public function close($ch): void
-    {
-        // End the session.
-        curl_close($ch);
+        if ($httpCode >= 400) {
+            throw new CurlHttpException(
+                sprintf('HTTP error: %d', $httpCode),
+                $httpCode
+            );
+        }
     }
 }
