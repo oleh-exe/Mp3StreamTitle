@@ -140,7 +140,7 @@ final class Mp3StreamTitle
             if ($metadata) {
                 $result = $this->getSongInfo($metadata);
                 // If error messages display disabled.
-            } elseif ($this->showErrors == 0) {
+            } elseif ($this->config->showErrors == 0) {
                 $result = 0;
                 // If enabled.
             } else {
@@ -221,7 +221,7 @@ final class Mp3StreamTitle
                     // Return the result of the request.
                     $result = $this->getSongInfo($metadata);
                     // If error messages display disabled.
-                } elseif ($this->showErrors == 0) {
+                } elseif ($this->config->showErrors == 0) {
                     // Close the connection.
                     fclose($fp);
 
@@ -234,14 +234,14 @@ final class Mp3StreamTitle
                     $result = 'Failed to get server response.';
                 }
                 // If error messages display disabled.
-            } elseif ($this->showErrors == 0) {
+            } elseif ($this->config->showErrors == 0) {
                 $result = 0;
                 // If enabled.
             } else {
                 $result = 'An error occurred while using sockets. ' . $errstr . ' (' . $errno . ').';
             }
             // If error messages display disabled.
-        } elseif ($this->showErrors == 0) {
+        } elseif ($this->config->showErrors == 0) {
             $result = 0;
             // If enabled.
         } else {
@@ -295,14 +295,14 @@ final class Mp3StreamTitle
                 // Return the execution result of the function.
                 $result = $this->getSongInfo($metadata);
                 // If error messages display disabled.
-            } elseif ($this->showErrors == 0) {
+            } elseif ($this->config->showErrors == 0) {
                 $result = 0;
                 // If enabled.
             } else {
                 $result = 'Failed to get server response.';
             }
             // If error messages display disabled.
-        } elseif ($this->showErrors == 0) {
+        } elseif ($this->config->showErrors == 0) {
             $result = 0;
             // If enabled.
         } else {
@@ -328,7 +328,7 @@ final class Mp3StreamTitle
             // Get information about the song in the following format "artist name and song name".
             $result = substr($metadata, $infoStart + 2, $infoEnd - ($infoStart + 2));
             // If error messages display disabled.
-        } elseif ($this->showErrors == 0) {
+        } elseif ($this->config->showErrors == 0) {
             $result = 0;
             // If enabled.
         } else {
