@@ -116,38 +116,38 @@ final class Mp3StreamTitle
             throw new RuntimeException(
                 'Failed to get headers from server response to HTTP-request or "icy-metaint" header value'
             );
-        } else {
-            $parser = new IcyMetadataStreamParser(
-                $offset,
-                $this->config->metaMaxLength
-            );
-
-            /* The callback-function returns the number of data bytes received or metadata.
-               The function is used as the value of the parameter "CURLOPT_WRITEFUNCTION". */
-            $callback = function(string $chunk) use ($parser): bool {
-                return !$parser->append($chunk);
-            };
-
-            $curlClient = new CurlHttpClient(
-                new CurlHttpClientConfig(
-                    $this->config->userAgent,
-                )
-            );
-            $curlClient->getStream($streamingUrl, $callback);
-            $metadata = $parser->getMetadata();
-
-            // Return the result of the request.
-            if ($metadata) {
-                $result = $this->getSongInfo($metadata);
-                // If error messages display disabled.
-            } elseif ($this->config->showErrors == 0) {
-                $result = 0;
-                // If enabled.
-            } else {
-                $result = $error . ' (' . $errno . ').';
-            }
-            // If error messages display disabled.
         }
+
+        $parser = new IcyMetadataStreamParser(
+            $offset,
+            $this->config->metaMaxLength
+        );
+
+        /* The callback-function returns the number of data bytes received or metadata.
+           The function is used as the value of the parameter "CURLOPT_WRITEFUNCTION". */
+        $callback = function (string $chunk) use ($parser): bool {
+            return !$parser->append($chunk);
+        };
+
+        $curlClient = new CurlHttpClient(
+            new CurlHttpClientConfig(
+                $this->config->userAgent,
+            )
+        );
+        $curlClient->getStream($streamingUrl, $callback);
+        $metadata = $parser->getMetadata();
+
+        // Return the result of the request.
+        if ($metadata) {
+            $result = $this->getSongInfo($metadata);
+            // If error messages display disabled.
+        } elseif ($this->config->showErrors == 0) {
+            $result = 0;
+            // If enabled.
+        } else {
+            $result = $error . ' (' . $errno . ').';
+        }
+        // If error messages display disabled.
 
         return $result;
     }
