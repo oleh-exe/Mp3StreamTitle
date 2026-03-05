@@ -29,9 +29,19 @@ final readonly class CurlHttpClientConfig
     public string $userAgent;
 
     /**
+     * @var array
+     */
+    public array $headers;
+
+    /**
      * @var int
      */
     public int $timeout;
+
+    /**
+     * @var int
+     */
+    public int $connectTimeout;
 
     /**
      * @var bool
@@ -45,13 +55,17 @@ final readonly class CurlHttpClientConfig
 
     /**
      * @param string $userAgent
+     * @param array $headers
      * @param int $timeout
+     * @param int $connectTimeout
      * @param bool $verifyPeer
      * @param int $verifyHost
      */
     public function __construct(
         string $userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36',
+        array $headers = ['Icy-MetaData: 1'],
         int $timeout = 30,
+        int $connectTimeout = 10,
         bool $verifyPeer = true,
         int $verifyHost = 2,
     ) {
@@ -59,8 +73,16 @@ final readonly class CurlHttpClientConfig
             throw new InvalidArgumentException('User-Agent cannot be empty');
         }
 
+        if (empty($headers)) {
+            throw new InvalidArgumentException('The header array cannot be empty');
+        }
+
         if ($timeout <= 0) {
             throw new InvalidArgumentException('Timeout must be greater than 0 seconds');
+        }
+
+        if ($connectTimeout <= 0) {
+            throw new InvalidArgumentException('Connection timeout must be greater than 0 seconds');
         }
 
         if (!in_array($verifyHost, [0, 2], true)) {
@@ -68,7 +90,9 @@ final readonly class CurlHttpClientConfig
         }
 
         $this->userAgent = $userAgent;
+        $this->headers = $headers;
         $this->timeout = $timeout;
+        $this->connectTimeout = $connectTimeout;
         $this->verifyPeer = $verifyPeer;
         $this->verifyHost = $verifyHost;
     }
