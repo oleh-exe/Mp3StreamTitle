@@ -90,7 +90,7 @@ readonly class CurlHttpClient
         // If there are errors we save them into variables.
         $errno = curl_errno($ch);
         $error = curl_error($ch);
-        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         // End the session.
         curl_close($ch);
