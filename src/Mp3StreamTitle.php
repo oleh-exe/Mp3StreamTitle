@@ -101,9 +101,6 @@ final class Mp3StreamTitle
      */
     private function sendCurl(string $streamingUrl): string|int
     {
-        // Initialize variables.
-        $metadata = '';
-
         // Checking if we can use cURL.
         if (!extension_loaded('curl') || !function_exists('curl_init')) {
             throw new RuntimeException(
@@ -137,6 +134,7 @@ final class Mp3StreamTitle
                 )
             );
             $curlClient->getStream($streamingUrl, $callback);
+            $metadata = $parser->getMetadata();
 
             // Return the result of the request.
             if ($metadata) {
