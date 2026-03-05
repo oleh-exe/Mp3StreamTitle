@@ -44,14 +44,14 @@ readonly class CurlHttpClient
     public function getStream(string $streamingUrl, callable $callback): void
     {
         if ($streamingUrl === '') {
-            throw new InvalidArgumentException('URL cannot be empty.');
+            throw new InvalidArgumentException('URL cannot be empty');
         }
 
         // Initialize the cURL session.
         $ch = curl_init();
 
         if ($ch === false) {
-            throw new CurlHttpException('Failed to initialize cURL.');
+            throw new CurlHttpException('Failed to initialize cURL');
         }
 
         $manuallyInterrupted = false;
@@ -64,8 +64,10 @@ readonly class CurlHttpClient
             CURLOPT_SSL_VERIFYPEER => $this->config->verifyPeer,
             CURLOPT_SSL_VERIFYHOST => $this->config->verifyHost,
             CURLOPT_TIMEOUT => $this->config->timeout,
-            CURLOPT_HTTPHEADER => ['Icy-MetaData: 1'],
+            CURLOPT_CONNECTTIMEOUT => $this->config->connectTimeout,
+            CURLOPT_HTTPHEADER => $this->config->headers,
             CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5,
             CURLOPT_USERAGENT => $this->config->userAgent,
             CURLOPT_WRITEFUNCTION => function ($ch, string $chunk) use ($callback, &$manuallyInterrupted): int {
                 $shouldContinue = $callback($chunk);
