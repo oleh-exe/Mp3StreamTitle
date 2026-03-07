@@ -37,9 +37,16 @@ readonly class CurlHttpClient
     }
 
     /**
-     * @param string $streamingUrl
-     * @param callable $callback
+     * Streams data from the provided URL and processes it using the callback function.
+     *
+     * @param string $streamingUrl The URL to stream data from. Must not be empty.
+     * @param callable $callback A callback function that processes each chunk of streamed data.
+     *                            The callback should return false to interrupt the streaming process.
+     *
      * @return void
+     *
+     * @throws InvalidArgumentException If the provided URL is empty.
+     * @throws CurlHttpException If an error occurs during the cURL session or there is an HTTP error.
      */
     public function getStream(string $streamingUrl, callable $callback): void
     {
