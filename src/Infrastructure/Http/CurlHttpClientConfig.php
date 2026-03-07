@@ -54,12 +54,18 @@ final readonly class CurlHttpClientConfig
     public int $verifyHost;
 
     /**
-     * @param string $userAgent
-     * @param array $headers
-     * @param int $timeout
-     * @param int $connectTimeout
-     * @param bool $verifyPeer
-     * @param int $verifyHost
+     * Constructor for the class.
+     *
+     * @param string $userAgent The User-Agent string to use for HTTP requests.
+     * @param array $headers Array of headers to include in HTTP requests.
+     * @param int $timeout The timeout duration in seconds for the request.
+     * @param int $connectTimeout The connection timeout duration in seconds.
+     * @param bool $verifyPeer Whether to verify the SSL certificate of the peer.
+     * @param int $verifyHost The level of host verification to perform (must be 0 or 2).
+     *
+     * @return void
+     *
+     * @throws InvalidArgumentException If any argument is invalid (e.g., empty User-Agent, invalid timeout values, etc.).
      */
     public function __construct(
         string $userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36',
