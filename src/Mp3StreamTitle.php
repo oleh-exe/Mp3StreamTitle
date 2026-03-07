@@ -96,10 +96,10 @@ final class Mp3StreamTitle
      * in the following format "artist name and song name".
      *
      * @param string $streamingUrl A direct URL to the online radio stream.
-     * @return string|int Metadata containing song information or an error code/message.
-     * @throws RuntimeException If the ext-curl extension is not installed or cURL functions are unavailable.
+     * @return string Metadata containing song information.
+     * @throws RuntimeException If cURL is unavailable or metadata cannot be retrieved.
      */
-    private function sendCurl(string $streamingUrl): string|int
+    private function sendCurl(string $streamingUrl): string
     {
         // Checking if we can use cURL.
         if (!extension_loaded('curl') || !function_exists('curl_init')) {
@@ -134,22 +134,19 @@ final class Mp3StreamTitle
                 $this->config->userAgent,
             )
         );
+
         $curlClient->getStream($streamingUrl, $callback);
+
         $metadata = $parser->getMetadata();
 
-        // Return the result of the request.
-        if ($metadata) {
-            $result = $this->getSongInfo($metadata);
-            // If error messages display disabled.
-        } elseif ($this->config->showErrors == 0) {
-            $result = 0;
-            // If enabled.
-        } else {
-            $result = $error . ' (' . $errno . ').';
+        if ($metadata === null) {
+            throw new RuntimeException(
+                'Failed to extract ICY metadata from the stream'
+            );
         }
-        // If error messages display disabled.
 
-        return $result;
+        // Return the result of the request.
+        return $this->getSongInfo($metadata);
     }
 
     /**
