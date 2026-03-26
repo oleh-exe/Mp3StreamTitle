@@ -126,7 +126,9 @@ final class Mp3StreamTitle
         /* The callback-function returns the number of data bytes received or metadata.
            The function is used as the value of the parameter "CURLOPT_WRITEFUNCTION". */
         $callback = function (string $chunk) use ($parser): bool {
-            return !$parser->append($chunk);
+            $isComplete = $parser->append($chunk);
+
+            return !$isComplete;
         };
 
         $curlClient = new CurlHttpClient(
