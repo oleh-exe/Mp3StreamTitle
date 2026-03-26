@@ -40,8 +40,8 @@ readonly class CurlHttpClient
      * Streams data from the provided URL and processes it using the callback function.
      *
      * @param string $streamingUrl The URL to stream data from. Must not be empty.
-     * @param callable $callback A callback function that processes each chunk of streamed data.
-     *                            The callback should return false to interrupt the streaming process.
+     * @param callable(string): bool $callback A callback function that processes each chunk of streamed data.
+     *                                         The callback should return false to interrupt the streaming process.
      *
      * @return void
      *
@@ -77,9 +77,9 @@ readonly class CurlHttpClient
             CURLOPT_MAXREDIRS => 5,
             CURLOPT_USERAGENT => $this->config->userAgent,
             CURLOPT_WRITEFUNCTION => function ($ch, string $chunk) use ($callback, &$manuallyInterrupted): int {
-                $shouldContinue = $callback($chunk);
+                $continueStreaming = $callback($chunk);
 
-                if ($shouldContinue === false) {
+                if ($continueStreaming === false) {
                     $manuallyInterrupted = true;
 
                     // Interrupt receiving data (with an error "curl_errno: 23").
