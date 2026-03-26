@@ -84,7 +84,7 @@ final class Mp3StreamTitle
             self::SEND_SOCKET => $this->sendSocket($streamingUrl),
             // Use the FGC-function.
             self::SEND_FGC => $this->sendFGC($streamingUrl),
-
+            // TODO: Finalize
             default => $this->error('error.invalid_send_type'),
         };
     }
