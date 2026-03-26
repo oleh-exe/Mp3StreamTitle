@@ -158,9 +158,9 @@ final class Mp3StreamTitle
      * in the following format "artist name and song name".
      *
      * @param string $streamingUrl
-     * @return string|int
+     * @return string
      */
-    private function sendSocket(string $streamingUrl): string|int
+    private function sendSocket(string $streamingUrl): string
     {
         $prefix = '';
         $port = 80;
@@ -307,9 +307,9 @@ final class Mp3StreamTitle
      * "artist name and song name".
      *
      * @param string $metadata
-     * @return string|int
+     * @return string
      */
-    private function getSongInfo(string $metadata): string|int
+    private function getSongInfo(string $metadata): string
     {
         /* Find the position of the string "='" indicating the beginning of information about the
            song and find position of the string "';" which indicates the end of the song information. */
@@ -317,11 +317,10 @@ final class Mp3StreamTitle
             // Get information about the song in the following format "artist name and song name".
             $result = substr($metadata, $infoStart + 2, $infoEnd - ($infoStart + 2));
             // If error messages display disabled.
-        } elseif ($this->config->showErrors == 0) {
-            $result = 0;
-            // If enabled.
         } else {
-            $result = 'Failed to get song info.';
+            throw new RuntimeException(
+                'Failed to get song info'
+            );
         }
         return $result;
     }
