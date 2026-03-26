@@ -207,12 +207,16 @@ final class Mp3StreamTitle
         $headers .= "User-Agent: " . $this->config->userAgent . "\r\n";
         $headers .= "icy-metadata: 1\r\n\r\n";
 
-        // Send a request to the stream-server.
-        if (fwrite($fp, $headers) === false) {
+        try {
+            // Send a request to the stream-server
+            if (fwrite($fp, $headers) === false) {
+                throw new RuntimeException(
+                    'Failed to get server response'
+                );
+            }
+        } finally {
+            // Close the connection
             fclose($fp);
-            throw new RuntimeException(
-                'Failed to get server response'
-            );
         }
 
         // Find out how many bytes of data need to be received.
@@ -221,9 +225,6 @@ final class Mp3StreamTitle
 
         // Save the data part into the variable.
         $buffer = stream_get_contents($fp, $dataByte);
-
-        // Close the connection.
-        fclose($fp);
 
         // Separate the headers from the "body".
         list($tmp, $body) = explode("\r\n\r\n", $buffer, 2);
