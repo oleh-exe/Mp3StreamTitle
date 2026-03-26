@@ -162,91 +162,80 @@ final class Mp3StreamTitle
      */
     private function sendSocket(string $streamingUrl): string|int
     {
-        // Initialize variables.
         $prefix = '';
         $port = 80;
         $path = '/';
 
         /* Find out from which byte the metadata will begin.
            If successful, continue to perform the function. */
-        if ($offset = $this->getOffset($streamingUrl)) {
-            // Parse URL.
-            $urlPart = parse_url($streamingUrl);
+        $offset = $this->getOffset($streamingUrl);
 
-            // Find out protocol.
-            if ($urlPart['scheme'] == 'https') {
-                $prefix = 'ssl://'; // If HTTPS, use the SSL protocol.
-                $port = 443; // If HTTPS, the port can only be 443.
-            }
-
-            // Find out port and protocol.
-            if (!empty($urlPart['port']) && $urlPart['scheme'] == 'http') {
-                $port = $urlPart['port']; // If the HTTP protocol, then the port is non-standard.
-            }
-
-            // Find out path.
-            if (!empty($urlPart['path'])) {
-                $path = $urlPart['path'];
-            }
-
-            // Open connection.
-            if ($fp = fsockopen($prefix . $urlPart['host'], $port, $errno, $errstr, 30)) {
-                // HTTP-request headers.
-                $headers = "GET " . $path . " HTTP/1.0\r\n";
-                $headers .= "User-Agent: " . $this->config->userAgent . "\r\n";
-                $headers .= "icy-metadata: 1\r\n\r\n";
-
-                // Send a request to the stream-server.
-                if (fwrite($fp, $headers)) {
-                    // Find out how many bytes of data need to be received.
-                    //$dataByte = $offset + $this->config->metaMaxLength;
-                    $dataByte = $offset + 1 + $this->config->metaMaxLength;
-
-                    // Save the data part into the variable.
-                    $buffer = stream_get_contents($fp, $dataByte);
-
-                    // Close the connection.
-                    fclose($fp);
-
-                    // Separate the headers from the "body".
-                    list($tmp, $body) = explode("\r\n\r\n", $buffer, 2);
-
-                    // Find out length of metadata.
-                    $metaLength = ord(substr($body, $offset, 1)) * 16;
-
-                    // Get metadata in the following format "StreamTitle='artist name and song name';".
-                    $metadata = substr($body, $offset, $metaLength);
-
-                    // Return the result of the request.
-                    $result = $this->getSongInfo($metadata);
-                    // If error messages display disabled.
-                } elseif ($this->config->showErrors == 0) {
-                    // Close the connection.
-                    fclose($fp);
-
-                    $result = 0;
-                    // If enabled.
-                } else {
-                    // Close the connection.
-                    fclose($fp);
-
-                    $result = 'Failed to get server response.';
-                }
-                // If error messages display disabled.
-            } elseif ($this->config->showErrors == 0) {
-                $result = 0;
-                // If enabled.
-            } else {
-                $result = 'An error occurred while using sockets. ' . $errstr . ' (' . $errno . ').';
-            }
-            // If error messages display disabled.
-        } elseif ($this->config->showErrors == 0) {
-            $result = 0;
-            // If enabled.
-        } else {
-            $result = 'Failed to get headers from server response to HTTP-request or "icy-metaint" header value.';
+        if ($offset === 0) {
+            throw new RuntimeException(
+                'Failed to get headers from server response to HTTP-request or "icy-metaint" header value'
+            );
         }
-        return $result;
+        // Parse URL.
+        $urlPart = parse_url($streamingUrl);
+
+        // Find out protocol.
+        if ($urlPart['scheme'] == 'https') {
+            $prefix = 'ssl://'; // If HTTPS, use the SSL protocol.
+            $port = 443; // If HTTPS, the port can only be 443.
+        }
+
+        // Find out port and protocol.
+        if (!empty($urlPart['port']) && $urlPart['scheme'] == 'http') {
+            $port = $urlPart['port']; // If the HTTP protocol, then the port is non-standard.
+        }
+
+        // Find out path.
+        if (!empty($urlPart['path'])) {
+            $path = $urlPart['path'];
+        }
+
+        $fp = fsockopen($prefix . $urlPart['host'], $port, $errno, $errstr, 30);
+
+        if ($fp === false) {
+            throw new RuntimeException(
+                'An error occurred while using sockets. ' . $errstr . ' (' . $errno . ')'
+            );
+        }
+
+        // HTTP-request headers.
+        $headers = "GET " . $path . " HTTP/1.0\r\n";
+        $headers .= "User-Agent: " . $this->config->userAgent . "\r\n";
+        $headers .= "icy-metadata: 1\r\n\r\n";
+
+        // Send a request to the stream-server.
+        if (fwrite($fp, $headers) === false) {
+            fclose($fp);
+            throw new RuntimeException(
+                'Failed to get server response'
+            );
+        }
+
+        // Find out how many bytes of data need to be received.
+        //$dataByte = $offset + $this->config->metaMaxLength;
+        $dataByte = $offset + 1 + $this->config->metaMaxLength;
+
+        // Save the data part into the variable.
+        $buffer = stream_get_contents($fp, $dataByte);
+
+        // Close the connection.
+        fclose($fp);
+
+        // Separate the headers from the "body".
+        list($tmp, $body) = explode("\r\n\r\n", $buffer, 2);
+
+        // Find out length of metadata.
+        $metaLength = ord(substr($body, $offset, 1)) * 16;
+
+        // Get metadata in the following format "StreamTitle='artist name and song name';".
+        $metadata = substr($body, $offset, $metaLength);
+
+        // Return the result of the request.
+        return $this->getSongInfo($metadata);
     }
 
     /**
