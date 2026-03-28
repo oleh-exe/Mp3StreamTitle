@@ -23,8 +23,25 @@ use InvalidArgumentException;
 
 final readonly class StreamEndpoint
 {
-    private function __construct(private string $url)
-    {
+    private string $scheme;
+
+    private string $host;
+
+    private int $port;
+
+    private string $path;
+
+    private function __construct(
+        private string $url,
+        string $scheme,
+        string $host,
+        int $port,
+        string $path
+    ) {
+        $this->scheme = $scheme;
+        $this->host = $host;
+        $this->port = $port;
+        $this->path = $path;
     }
 
     public static function fromString(string $url): self
@@ -37,32 +54,89 @@ final readonly class StreamEndpoint
 
         $parts = parse_url($url);
 
-        if (!in_array($parts['scheme'], ['http', 'https'], true)) {
-            throw new InvalidArgumentException('Invalid scheme');
+        if ($parts === false) {
+            throw new InvalidArgumentException(
+                sprintf('Unable to parse URL: "%s"', $url)
+            );
         }
 
-        return new self($url);
+        $scheme = $parts['scheme'] ?? null;
+        $host = $parts['host'] ?? null;
+        $path = $parts['path'] ?? '/';
+        $port = $parts['port'] ?? null;
+
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            throw new InvalidArgumentException(
+                'Invalid or unsupported URL scheme'
+            );
+        }
+
+        if (
+            !is_string($host)
+            || ($host === '')
+        ) {
+            throw new InvalidArgumentException(
+                'URL must contain a valid host'
+            );
+        }
+
+        if ($port === null) {
+            $port = $scheme === 'https' ? 443 : 80;
+        }
+
+        if (
+            !is_int($port)
+            || ($port <= 0)
+            || ($port > 65535)
+        ) {
+            throw new InvalidArgumentException(
+                'Invalid port in URL'
+            );
+        }
+
+        if (
+            !is_string($path)
+            || ($path === '')
+        ) {
+            $path = '/';
+        }
+
+        return new self(
+            url: $url,
+            scheme: $scheme,
+            host: $host,
+            port: $port,
+            path: $path
+        );
+    }
+
+    public function getUrl(): string
+    {
+        return $this->url;
+    }
+
+    public function getScheme(): string
+    {
+        return $this->scheme;
     }
 
     public function getHost(): string
     {
-        return parse_url($this->url, PHP_URL_HOST);
+        return $this->host;
     }
 
     public function getPort(): int
     {
-        return parse_url($this->url, PHP_URL_PORT);
+        return $this->port;
     }
 
     public function getPath(): string
     {
-        return parse_url($this->url, PHP_URL_PATH);
+        return $this->path;
     }
 
     public function isSecure(): bool
     {
-        $scheme = parse_url($this->url, PHP_URL_SCHEME);
-
-        return $scheme === 'https';
+        return $this->scheme === 'https';
     }
 }
