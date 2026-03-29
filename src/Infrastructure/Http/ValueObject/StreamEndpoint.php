@@ -23,14 +23,33 @@ use InvalidArgumentException;
 
 final readonly class StreamEndpoint
 {
+    /**
+     * @var string
+     */
     private string $scheme;
 
+    /**
+     * @var string
+     */
     private string $host;
 
+    /**
+     * @var int
+     */
     private int $port;
 
+    /**
+     * @var string
+     */
     private string $path;
 
+    /**
+     * @param string $url
+     * @param string $scheme
+     * @param string $host
+     * @param int $port
+     * @param string $path
+     */
     private function __construct(
         private string $url,
         string $scheme,
@@ -44,6 +63,11 @@ final readonly class StreamEndpoint
         $this->path = $path;
     }
 
+    /**
+     * @param string $url
+     *
+     * @return self
+     */
     public static function fromString(string $url): self
     {
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
@@ -110,31 +134,49 @@ final readonly class StreamEndpoint
         );
     }
 
+    /**
+     * @return string
+     */
     public function getUrl(): string
     {
         return $this->url;
     }
 
+    /**
+     * @return string
+     */
     public function getScheme(): string
     {
         return $this->scheme;
     }
 
+    /**
+     * @return string
+     */
     public function getHost(): string
     {
         return $this->host;
     }
 
+    /**
+     * @return int
+     */
     public function getPort(): int
     {
         return $this->port;
     }
 
+    /**
+     * @return string
+     */
     public function getPath(): string
     {
         return $this->path;
     }
 
+    /**
+     * @return bool
+     */
     public function isSecure(): bool
     {
         return $this->scheme === 'https';
