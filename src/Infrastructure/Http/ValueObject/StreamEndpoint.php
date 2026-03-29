@@ -44,11 +44,15 @@ final readonly class StreamEndpoint
     private string $path;
 
     /**
-     * @param string $url
-     * @param string $scheme
-     * @param string $host
-     * @param int $port
-     * @param string $path
+     * Initializes a new instance of the class with the specified parameters.
+     *
+     * @param string $url The full URL string.
+     * @param string $scheme The scheme component of the URL.
+     * @param string $host The host component of the URL.
+     * @param int $port The port component of the URL.
+     * @param string $path The path component of the URL.
+     *
+     * @return void
      */
     private function __construct(
         private string $url,
@@ -64,9 +68,13 @@ final readonly class StreamEndpoint
     }
 
     /**
-     * @param string $url
+     * Creates an instance of the class using a URL string.
      *
-     * @return self
+     * @param string $url The URL string to be parsed and used for instantiation.
+     *
+     * @return self An instance of the class initialized with the parsed URL components.
+     *
+     * @throws InvalidArgumentException If the provided URL is invalid or contains unsupported components.
      */
     public static function fromString(string $url): self
     {
@@ -135,7 +143,9 @@ final readonly class StreamEndpoint
     }
 
     /**
-     * @return string
+     * Retrieves the URL.
+     *
+     * @return string The URL.
      */
     public function getUrl(): string
     {
@@ -143,7 +153,9 @@ final readonly class StreamEndpoint
     }
 
     /**
-     * @return string
+     * Retrieves the scheme component.
+     *
+     * @return string The scheme component.
      */
     public function getScheme(): string
     {
@@ -175,6 +187,8 @@ final readonly class StreamEndpoint
     }
 
     /**
+     * Determines if the scheme is secure.
+     *
      * @return bool
      */
     public function isSecure(): bool
