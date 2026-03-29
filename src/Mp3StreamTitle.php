@@ -166,8 +166,6 @@ final class Mp3StreamTitle
     private function sendSocket(string $streamingUrl): string
     {
         $prefix = '';
-        $port = 80;
-        $path = '/';
 
         $endpoint = StreamEndpoint::fromString($streamingUrl);
 
@@ -180,26 +178,18 @@ final class Mp3StreamTitle
                 'Failed to get headers from server response to HTTP-request or "icy-metaint" header value'
             );
         }
-        // Parse URL.
-        $urlPart = parse_url($endpoint->getUrl());
 
         // Find out protocol.
-        if ($urlPart['scheme'] == 'https') {
-            $prefix = 'ssl://'; // If HTTPS, use the SSL protocol.
-            $port = 443; // If HTTPS, the port can only be 443.
+        if ($endpoint->isSecure()) {
+            // If HTTPS, use the SSL protocol.
+            $prefix = 'ssl://';
         }
 
-        // Find out port and protocol.
-        if (!empty($urlPart['port']) && $urlPart['scheme'] == 'http') {
-            $port = $urlPart['port']; // If the HTTP protocol, then the port is non-standard.
-        }
+        // If the HTTP protocol, then the port is non-standard.
+        $port = $endpoint->getPort();
+        $path = $endpoint->getPath();
 
-        // Find out path.
-        if (!empty($urlPart['path'])) {
-            $path = $urlPart['path'];
-        }
-
-        $fp = fsockopen($prefix . $urlPart['host'], $port, $errno, $errstr, 30);
+        $fp = fsockopen($prefix . $endpoint->getHost(), $port, $errno, $errstr, 30);
 
         if ($fp === false) {
             throw new RuntimeException(
