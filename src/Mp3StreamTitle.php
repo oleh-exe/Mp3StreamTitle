@@ -165,7 +165,7 @@ final class Mp3StreamTitle
      */
     private function sendSocket(string $streamingUrl): string
     {
-        $prefix = '';
+        $transport = '';
 
         $endpoint = StreamEndpoint::fromString($streamingUrl);
 
@@ -182,14 +182,14 @@ final class Mp3StreamTitle
         // Find out protocol.
         if ($endpoint->isSecure()) {
             // If HTTPS, use the SSL protocol.
-            $prefix = 'ssl://';
+            $transport = 'ssl://';
         }
 
         // If the HTTP protocol, then the port is non-standard.
         $port = $endpoint->getPort();
         $path = $endpoint->getPath();
 
-        $fp = fsockopen($prefix . $endpoint->getHost(), $port, $errno, $errstr, 30);
+        $fp = fsockopen($transport . $endpoint->getHost(), $port, $errno, $errstr, 30);
 
         if ($fp === false) {
             throw new RuntimeException(
