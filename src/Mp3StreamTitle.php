@@ -165,7 +165,7 @@ final class Mp3StreamTitle
      */
     private function sendSocket(string $streamingUrl): string
     {
-        $transport = '';
+        $transport = 'tcp';
 
         $endpoint = StreamEndpoint::fromString($streamingUrl);
 
@@ -182,14 +182,14 @@ final class Mp3StreamTitle
         // Find out protocol.
         if ($endpoint->isSecure()) {
             // If HTTPS, use the SSL protocol.
-            $transport = 'ssl://';
+            $transport = 'tls';
         }
 
         // If the HTTP protocol, then the port is non-standard.
         $port = $endpoint->getPort();
         $path = $endpoint->getPath();
 
-        $fp = fsockopen($transport . $endpoint->getHost(), $port, $errno, $errstr, 30);
+        $fp = fsockopen($transport . '://' . $endpoint->getHost(), $port, $errno, $errstr, 30);
 
         if ($fp === false) {
             throw new RuntimeException(
@@ -202,17 +202,16 @@ final class Mp3StreamTitle
         $headers .= "User-Agent: " . $this->config->userAgent . "\r\n";
         $headers .= "icy-metadata: 1\r\n\r\n";
 
-        try {
+        //try {
             // Send a request to the stream-server
             if (fwrite($fp, $headers) === false) {
                 throw new RuntimeException(
                     'Failed to get server response'
                 );
             }
-        } finally {
-            // Close the connection
+        /*} finally {
             fclose($fp);
-        }
+        }*/
 
         // Find out how many bytes of data need to be received.
         //$dataByte = $offset + $this->config->metaMaxLength;
@@ -220,6 +219,8 @@ final class Mp3StreamTitle
 
         // Save the data part into the variable.
         $buffer = stream_get_contents($fp, $dataByte);
+
+        fclose($fp);
 
         // Separate the headers from the "body".
         list($tmp, $body) = explode("\r\n\r\n", $buffer, 2);
