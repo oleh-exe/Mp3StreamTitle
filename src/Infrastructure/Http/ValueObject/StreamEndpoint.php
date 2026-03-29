@@ -95,6 +95,7 @@ final readonly class StreamEndpoint
         $scheme = $parts['scheme'] ?? null;
         $host = $parts['host'] ?? null;
         $path = $parts['path'] ?? '/';
+        $query = $parts['query'] ?? null;
         $port = $parts['port'] ?? null;
 
         if (!in_array($scheme, ['http', 'https'], true)) {
@@ -133,6 +134,10 @@ final readonly class StreamEndpoint
             $path = '/';
         }
 
+        if ($query !== '') {
+            $path = $path . '?' . $query;
+        }
+
         return new self(
             url: $url,
             scheme: $scheme,
@@ -160,6 +165,11 @@ final readonly class StreamEndpoint
     public function getScheme(): string
     {
         return $this->scheme;
+    }
+
+    public function getTransport(): string
+    {
+        return $this->scheme === 'http' ? 'tcp' : 'tls';
     }
 
     /**
