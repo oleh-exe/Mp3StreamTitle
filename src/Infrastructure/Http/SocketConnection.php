@@ -19,7 +19,31 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http;
 
-class SocketConnection
+final class SocketConnection
 {
+    /**
+     * @var resource|false
+     */
+    private mixed $fp;
 
+    public function __construct(
+        $host,
+        $port,
+        $transport,
+        $timeout
+    ) {
+        $this->fp = fsockopen($transport . $host, $port, $errno, $errstr, $timeout);
+    }
+
+    public function write()
+    {
+    }
+
+    public function read(int $length)
+    {
+    }
+
+    public function close()
+    {
+    }
 }
