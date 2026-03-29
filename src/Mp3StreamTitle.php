@@ -23,6 +23,7 @@ use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClient;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClientConfig;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
+use Mp3StreamTitle\Infrastructure\Http\ValueObject\StreamEndpoint;
 use RuntimeException;
 
 final class Mp3StreamTitle
@@ -108,9 +109,11 @@ final class Mp3StreamTitle
             );
         }
 
+        $endpoint = StreamEndpoint::fromString($streamingUrl);
+
         /* Find out from which byte the metadata will begin.
            If successful, continue to perform the function. */
-        $offset = $this->getOffset($streamingUrl);
+        $offset = $this->getOffset($endpoint->getUrl());
 
         if (!$offset) {
             throw new RuntimeException(
@@ -137,7 +140,7 @@ final class Mp3StreamTitle
             )
         );
 
-        $curlClient->getStream($streamingUrl, $callback);
+        $curlClient->getStream($endpoint->getUrl(), $callback);
 
         $metadata = $parser->getMetadata();
 
@@ -166,9 +169,11 @@ final class Mp3StreamTitle
         $port = 80;
         $path = '/';
 
+        $endpoint = StreamEndpoint::fromString($streamingUrl);
+
         /* Find out from which byte the metadata will begin.
            If successful, continue to perform the function. */
-        $offset = $this->getOffset($streamingUrl);
+        $offset = $this->getOffset($endpoint->getUrl());
 
         if ($offset === 0) {
             throw new RuntimeException(
@@ -176,7 +181,7 @@ final class Mp3StreamTitle
             );
         }
         // Parse URL.
-        $urlPart = parse_url($streamingUrl);
+        $urlPart = parse_url($endpoint->getUrl());
 
         // Find out protocol.
         if ($urlPart['scheme'] == 'https') {
@@ -250,9 +255,11 @@ final class Mp3StreamTitle
      */
     private function sendFGC(string $streamingUrl): string|int
     {
+        $endpoint = StreamEndpoint::fromString($streamingUrl);
+
         /* Find out from which byte the metadata will begin.
            If successful, continue to perform the function. */
-        if ($offset = $this->getOffset($streamingUrl)) {
+        if ($offset = $this->getOffset($endpoint->getUrl())) {
             // HTTP-request headers.
             $optionsMethod = "GET";
             $optionsHeader = "User-Agent: " . $this->config->userAgent . "\r\n";
@@ -274,7 +281,7 @@ final class Mp3StreamTitle
             $dataByte = $offset + 1 + $this->config->metaMaxLength;
 
             // Open the stream using the HTTP-headers set above.
-            if ($buffer = file_get_contents($streamingUrl, false, $context, 0, $dataByte)) {
+            if ($buffer = file_get_contents($endpoint->getUrl(), false, $context, 0, $dataByte)) {
                 // Find out length of metadata.
                 $metaLength = ord(substr($buffer, $offset, 1)) * 16;
 
