@@ -92,6 +92,15 @@ final readonly class StreamEndpoint
             );
         }
 
+        if (
+            isset($parts['user'])
+            || isset($parts['pass'])
+        ) {
+            throw new InvalidArgumentException(
+                'Userinfo in URL is not supported'
+            );
+        }
+
         $scheme = $parts['scheme'] ?? null;
         $host = $parts['host'] ?? null;
         $path = $parts['path'] ?? '/';
@@ -112,6 +121,8 @@ final readonly class StreamEndpoint
                 'URL must contain a valid host'
             );
         }
+
+        $host = strtolower($host);
 
         if ($port === null) {
             $port = $scheme === 'https' ? 443 : 80;
@@ -134,7 +145,10 @@ final readonly class StreamEndpoint
             $path = '/';
         }
 
-        if ($query !== '') {
+        if (
+            $query !== null
+            && $query !== ''
+        ) {
             $path = $path . '?' . $query;
         }
 
@@ -167,6 +181,11 @@ final readonly class StreamEndpoint
         return $this->scheme;
     }
 
+    /**
+     * Determines and retrieves the transport protocol.
+     *
+     * @return string The transport protocol, either 'tcp' or 'tls'.
+     */
     public function getTransport(): string
     {
         return $this->scheme === 'http' ? 'tcp' : 'tls';
@@ -191,7 +210,7 @@ final readonly class StreamEndpoint
     /**
      * @return string
      */
-    public function getPath(): string
+    public function getRequestTarget(): string
     {
         return $this->path;
     }
