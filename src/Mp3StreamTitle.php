@@ -187,7 +187,7 @@ final class Mp3StreamTitle
 
         // If the HTTP protocol, then the port is non-standard.
         $port = $endpoint->getPort();
-        $path = $endpoint->getPath();
+        $path = $endpoint->getRequestTarget();
 
         $fp = fsockopen($transport . '://' . $endpoint->getHost(), $port, $errno, $errstr, 30);
 
