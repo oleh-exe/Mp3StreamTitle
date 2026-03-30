@@ -20,13 +20,15 @@ declare(strict_types=1);
 namespace Mp3StreamTitle\Infrastructure\Http\ValueObject;
 
 use InvalidArgumentException;
+use Mp3StreamTitle\Infrastructure\Http\Enum\Scheme;
+use ValueError;
 
 final readonly class StreamEndpoint
 {
     /**
-     * @var string
+     * @var Scheme
      */
-    private string $scheme;
+    private Scheme $scheme;
 
     /**
      * @var string
@@ -47,16 +49,16 @@ final readonly class StreamEndpoint
      * Initializes a new instance of the class with the specified parameters.
      *
      * @param string $url The full URL string.
-     * @param string $scheme The scheme component of the URL.
+     * @param Scheme $scheme The scheme object associated with the URL.
      * @param string $host The host component of the URL.
-     * @param int $port The port component of the URL.
+     * @param int $port The port number for the connection.
      * @param string $path The path component of the URL.
      *
      * @return void
      */
     private function __construct(
         private string $url,
-        string $scheme,
+        Scheme $scheme,
         string $host,
         int $port,
         string $path
@@ -68,13 +70,15 @@ final readonly class StreamEndpoint
     }
 
     /**
-     * Creates an instance of the class using a URL string.
+     * Creates an instance from a given URL string.
      *
-     * @param string $url The URL string to be parsed and used for instantiation.
+     * @param string $url The URL to parse and construct the object from.
      *
-     * @return self An instance of the class initialized with the parsed URL components.
+     * @return self The constructed instance based on the provided URL.
      *
-     * @throws InvalidArgumentException If the provided URL is invalid or contains unsupported components.
+     * @throws InvalidArgumentException If the URL is invalid, cannot be parsed,
+     *                                  contains unsupported userinfo, lacks a scheme,
+     *                                  or includes an invalid host, scheme, or port.
      */
     public static function fromString(string $url): self
     {
@@ -101,13 +105,20 @@ final readonly class StreamEndpoint
             );
         }
 
-        $scheme = $parts['scheme'] ?? null;
+        if (!isset($parts['scheme'])) {
+            throw new InvalidArgumentException(
+                'URL must contain a scheme'
+            );
+        }
+
         $host = $parts['host'] ?? null;
         $path = $parts['path'] ?? '/';
         $query = $parts['query'] ?? null;
         $port = $parts['port'] ?? null;
 
-        if (!in_array($scheme, ['http', 'https'], true)) {
+        try {
+            $scheme = Scheme::from($parts['scheme']);
+        } catch (ValueError) {
             throw new InvalidArgumentException(
                 'Invalid or unsupported URL scheme'
             );
@@ -125,7 +136,7 @@ final readonly class StreamEndpoint
         $host = strtolower($host);
 
         if ($port === null) {
-            $port = $scheme === 'https' ? 443 : 80;
+            $port = $scheme->defaultPort();
         }
 
         if (
@@ -172,23 +183,23 @@ final readonly class StreamEndpoint
     }
 
     /**
-     * Retrieves the scheme component.
+     * Retrieves the scheme associated with the instance.
      *
-     * @return string The scheme component.
+     * @return string The scheme object.
      */
     public function getScheme(): string
     {
-        return $this->scheme;
+        return $this->scheme->value;
     }
 
     /**
-     * Determines and retrieves the transport protocol.
+     * Retrieves the transport representation of the scheme.
      *
-     * @return string The transport protocol, either 'tcp' or 'tls'.
+     * @return string The transport value as a string.
      */
     public function getTransport(): string
     {
-        return $this->scheme === 'http' ? 'tcp' : 'tls';
+        return $this->scheme->toTransport()->value;
     }
 
     /**
@@ -216,12 +227,12 @@ final readonly class StreamEndpoint
     }
 
     /**
-     * Determines if the scheme is secure.
+     * Determines if the current scheme is secure.
      *
-     * @return bool
+     * @return bool True if the scheme is secure, false otherwise.
      */
     public function isSecure(): bool
     {
-        return $this->scheme === 'https';
+        return $this->scheme->isSecure();
     }
 }
