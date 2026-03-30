@@ -185,7 +185,7 @@ final readonly class StreamEndpoint
     /**
      * Retrieves the scheme associated with the instance.
      *
-     * @return string The scheme object.
+     * @return string The scheme value (e.g. "http", "https").
      */
     public function getScheme(): string
     {
