@@ -149,10 +149,7 @@ final readonly class StreamEndpoint
             );
         }
 
-        if (
-            !is_string($path)
-            || ($path === '')
-        ) {
+        if ($path === '') {
             $path = '/';
         }
 
