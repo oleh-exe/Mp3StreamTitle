@@ -19,31 +19,112 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http;
 
+use InvalidArgumentException;
+
 final class SocketConnection
 {
     /**
-     * @var resource|false
+     * @var string
+     */
+    private string $host;
+
+    /**
+     * @var int
+     */
+    private int $port;
+
+    /**
+     * @var string
+     */
+    private string $transport;
+
+    /**
+     * @var int
+     */
+    private int $timeout;
+
+    /**
+     * @var mixed
      */
     private mixed $fp;
 
+    /**
+     * @param string $host
+     * @param int $port
+     * @param string $transport
+     * @param int $timeout
+     */
     public function __construct(
-        $host,
-        $port,
-        $transport,
-        $timeout
+        string $host,
+        int $port,
+        string $transport,
+        int $timeout
     ) {
-        $this->fp = fsockopen($transport . $host, $port, $errno, $errstr, $timeout);
+        if ($timeout <= 0) {
+            throw new InvalidArgumentException(
+                'Timeout must be greater than 0 seconds'
+            );
+        }
+
+        $this->host = $host;
+        $this->port = $port;
+        $this->transport = $transport;
+        $this->timeout = $timeout;
     }
 
-    public function write()
+    /**
+     * @return mixed
+     */
+    public function open(): mixed
     {
+        $remoteAddress = sprintf('%s://%s', $this->transport, $this->host);
+
+        $fp = fsockopen(
+            $remoteAddress,
+            $this->port,
+            $errno,
+            $errstr,
+            $this->timeout
+        );
+
+        if ($fp === false) {
+            $errorMessage = sprintf(
+                'An error occurred while using sockets. %s (%d)',
+                $errstr,
+                $errno
+            );
+
+            throw new SocketConnectionException($errorMessage);
+        }
+
+        $this->fp = $fp;
+
+        return $fp;
+    }
+
+    /**
+     * @param string $headers
+     *
+     * @return void
+     */
+    public function write(string $headers): void
+    {
+        if (fwrite($this->fp, $headers) === false) {
+            throw new SocketConnectionException(
+                'Failed to get server response'
+            );
+        }
     }
 
     public function read(int $length)
     {
     }
 
-    public function close()
+    /**
+     * @return void
+     */
+    public function close(): void
     {
+        fclose($this->fp);
     }
 }
