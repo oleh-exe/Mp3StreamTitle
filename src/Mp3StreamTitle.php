@@ -23,6 +23,7 @@ use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClient;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClientConfig;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
+use Mp3StreamTitle\Infrastructure\Http\SocketConnection;
 use Mp3StreamTitle\Infrastructure\Http\ValueObject\StreamEndpoint;
 use RuntimeException;
 
@@ -165,8 +166,6 @@ final class Mp3StreamTitle
      */
     private function sendSocket(string $streamingUrl): string
     {
-        $transport = 'tcp';
-
         $endpoint = StreamEndpoint::fromString($streamingUrl);
 
         /* Find out from which byte the metadata will begin.
@@ -179,39 +178,22 @@ final class Mp3StreamTitle
             );
         }
 
-        // Find out protocol.
-        if ($endpoint->isSecure()) {
-            // If HTTPS, use the SSL protocol.
-            $transport = 'tls';
-        }
+        $socket = new SocketConnection(
+            $endpoint->getHost(),
+            $endpoint->getPort(),
+            $endpoint->getTransport(),
+            30,
+        );
 
-        // If the HTTP protocol, then the port is non-standard.
-        $port = $endpoint->getPort();
-        $path = $endpoint->getRequestTarget();
-
-        $fp = fsockopen($transport . '://' . $endpoint->getHost(), $port, $errno, $errstr, 30);
-
-        if ($fp === false) {
-            throw new RuntimeException(
-                'An error occurred while using sockets. ' . $errstr . ' (' . $errno . ')'
-            );
-        }
+        $fp = $socket->open();
 
         // HTTP-request headers.
-        $headers = "GET " . $path . " HTTP/1.0\r\n";
+        $headers = "GET " . $endpoint->getRequestTarget() . " HTTP/1.0\r\n";
         $headers .= "User-Agent: " . $this->config->userAgent . "\r\n";
         $headers .= "icy-metadata: 1\r\n\r\n";
 
-        //try {
-            // Send a request to the stream-server
-            if (fwrite($fp, $headers) === false) {
-                throw new RuntimeException(
-                    'Failed to get server response'
-                );
-            }
-        /*} finally {
-            fclose($fp);
-        }*/
+        // Send a request to the stream-server
+        $socket->write($headers);
 
         // Find out how many bytes of data need to be received.
         //$dataByte = $offset + $this->config->metaMaxLength;
@@ -220,7 +202,7 @@ final class Mp3StreamTitle
         // Save the data part into the variable.
         $buffer = stream_get_contents($fp, $dataByte);
 
-        fclose($fp);
+        $socket->close();
 
         // Separate the headers from the "body".
         list($tmp, $body) = explode("\r\n\r\n", $buffer, 2);
