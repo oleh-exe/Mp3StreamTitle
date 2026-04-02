@@ -185,8 +185,6 @@ final class Mp3StreamTitle
             30,
         );
 
-        $fp = $socket->open();
-
         // HTTP-request headers.
         $headers = "GET " . $endpoint->getRequestTarget() . " HTTP/1.0\r\n";
         $headers .= "User-Agent: " . $this->config->userAgent . "\r\n";
@@ -196,11 +194,10 @@ final class Mp3StreamTitle
         $socket->write($headers);
 
         // Find out how many bytes of data need to be received.
-        //$dataByte = $offset + $this->config->metaMaxLength;
-        $dataByte = $offset + 1 + $this->config->metaMaxLength;
+        $length = $offset + 1 + $this->config->metaMaxLength;
 
         // Save the data part into the variable.
-        $buffer = stream_get_contents($fp, $dataByte);
+        $buffer = $socket->read($length);
 
         $socket->close();
 
