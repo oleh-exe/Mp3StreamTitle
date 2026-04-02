@@ -24,26 +24,6 @@ use InvalidArgumentException;
 final class SocketConnection
 {
     /**
-     * @var string
-     */
-    private string $host;
-
-    /**
-     * @var int
-     */
-    private int $port;
-
-    /**
-     * @var string
-     */
-    private string $transport;
-
-    /**
-     * @var int
-     */
-    private int $timeout;
-
-    /**
      * @var mixed
      */
     private mixed $fp;
@@ -66,25 +46,14 @@ final class SocketConnection
             );
         }
 
-        $this->host = $host;
-        $this->port = $port;
-        $this->transport = $transport;
-        $this->timeout = $timeout;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function open(): mixed
-    {
-        $remoteAddress = sprintf('%s://%s', $this->transport, $this->host);
+        $remoteAddress = sprintf('%s://%s', $transport, $host);
 
         $fp = fsockopen(
             $remoteAddress,
-            $this->port,
+            $port,
             $errno,
             $errstr,
-            $this->timeout
+            $timeout
         );
 
         if ($fp === false) {
@@ -98,8 +67,6 @@ final class SocketConnection
         }
 
         $this->fp = $fp;
-
-        return $fp;
     }
 
     /**
@@ -109,15 +76,32 @@ final class SocketConnection
      */
     public function write(string $headers): void
     {
-        if (fwrite($this->fp, $headers) === false) {
-            throw new SocketConnectionException(
-                'Failed to get server response'
-            );
+        $stringLength = strlen($headers);
+
+        for ($written = 0; $written < $stringLength; $written += $fwrite) {
+            $partOfString = substr($headers, $written);
+            $fwrite = fwrite($this->fp, $partOfString);
+
+            if ($fwrite === false || $fwrite === 0) {
+                throw new SocketConnectionException(
+                    sprintf(
+                        'Socket write failed: fwrite returned %s (bytes attempted: %d)',
+                        var_export($fwrite, true),
+                        strlen($partOfString)
+                    )
+                );
+            }
         }
     }
 
-    public function read(int $length)
+    /**
+     * @param int $length
+     *
+     * @return false|string
+     */
+    public function read(int $length): false|string
     {
+        return stream_get_contents($this->fp, $length);
     }
 
     /**
