@@ -143,10 +143,12 @@ final class SocketConnection
                 $bytes = fwrite($this->fp, $chunk);
 
                 if ($bytes === false || $bytes === 0) {
-                    throw new SocketConnectionException(sprintf(
-                        'Socket write failed (attempted %d bytes)',
-                        strlen($chunk)
-                    ));
+                    throw new SocketConnectionException(
+                        sprintf(
+                            'Socket write failed (attempted %d bytes)',
+                            strlen($chunk)
+                        )
+                    );
                 }
 
                 $written += $bytes;
@@ -182,7 +184,9 @@ final class SocketConnection
             $response = stream_get_contents($this->fp, $length);
 
             if ($response === false) {
-                throw new SocketConnectionException('Socket read failed');
+                throw new SocketConnectionException(
+                    'Socket read failed'
+                );
             }
 
             $meta = stream_get_meta_data($this->fp);
@@ -227,11 +231,17 @@ final class SocketConnection
         $this->state = ConnectionState::CLOSED;
     }
 
+    /**
+     * @return ConnectionState
+     */
     public function getState(): ConnectionState
     {
         return $this->state;
     }
 
+    /**
+     * @return void
+     */
     private function assertConnected(): void
     {
         if ($this->state !== ConnectionState::CONNECTED) {
