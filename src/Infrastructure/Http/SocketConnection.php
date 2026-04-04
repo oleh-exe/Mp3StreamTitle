@@ -66,6 +66,18 @@ final class SocketConnection
             throw new SocketConnectionException($errorMessage);
         }
 
+        if (stream_set_blocking($fp, true) === false) {
+            throw new SocketConnectionException(
+                'Unable to set stream to blocking mode'
+            );
+        }
+
+        if (stream_set_timeout($fp, $timeout) === false) {
+            throw new SocketConnectionException(
+                'Unable to set stream timeout'
+            );
+        }
+
         $this->fp = $fp;
     }
 
@@ -97,11 +109,31 @@ final class SocketConnection
     /**
      * @param int $length
      *
-     * @return false|string
+     * @return string
      */
-    public function read(int $length): false|string
+    public function read(int $length): string
     {
-        return stream_get_contents($this->fp, $length);
+        $response = stream_get_contents($this->fp, $length);
+
+        if ($response === false || $response === '') {
+            $errorMessage = sprintf(
+                'Socket read failed: stream_get_contents returned %s (length: %d)',
+                var_export($response, true),
+                $length
+            );
+
+            throw new SocketConnectionException($errorMessage);
+        }
+
+        $meta = stream_get_meta_data($this->fp);
+
+        if ($meta['timed_out']) {
+            throw new SocketConnectionException(
+                'Read timeout'
+            );
+        }
+
+        return $response;
     }
 
     /**
