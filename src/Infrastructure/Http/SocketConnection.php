@@ -57,9 +57,14 @@ final class SocketConnection
 
     public function open(): void
     {
-        if ($this->state !== ConnectionState::INITIAL) {
+        if (
+            !in_array($this->state, [ConnectionState::INITIAL, ConnectionState::CLOSED], true)
+        ) {
             throw new LogicException(
-                'Connection already initialized'
+                sprintf(
+                    'Connection cannot be opened from state %s',
+                    $this->state->value
+                )
             );
         }
 
@@ -87,24 +92,35 @@ final class SocketConnection
             throw new SocketConnectionException($errorMessage);
         }
 
-        if (!stream_set_blocking($fp, true)) {
+        try {
+            if (!stream_set_blocking($fp, true)) {
+                $this->state = ConnectionState::ERROR;
+
+                throw new SocketConnectionException(
+                    'Unable to set stream to blocking mode'
+                );
+            }
+
+            if (!stream_set_timeout($fp, $this->timeout)) {
+                $this->state = ConnectionState::ERROR;
+
+                throw new SocketConnectionException(
+                    'Unable to set stream timeout'
+                );
+            }
+
+            $this->fp = $fp;
+            $this->state = ConnectionState::CONNECTED;
+        } catch (Throwable $e) {
+            if (is_resource($fp)) {
+                fclose($fp);
+            }
+
+            $this->fp = null;
             $this->state = ConnectionState::ERROR;
 
-            throw new SocketConnectionException(
-                'Unable to set stream to blocking mode'
-            );
+            throw $e;
         }
-
-        if (!stream_set_timeout($fp, $this->timeout)) {
-            $this->state = ConnectionState::ERROR;
-
-            throw new SocketConnectionException(
-                'Unable to set stream timeout'
-            );
-        }
-
-        $this->fp = $fp;
-        $this->state = ConnectionState::CONNECTED;
     }
 
     /**
@@ -119,28 +135,30 @@ final class SocketConnection
         $this->state = ConnectionState::WRITING;
 
         try {
-            $stringLength = strlen($data);
+            $length = strlen($data);
+            $written = 0;
 
-            for ($written = 0; $written < $stringLength; $written += $fwrite) {
-                $partOfString = substr($data, $written);
-                $fwrite = fwrite($this->fp, $partOfString);
+            while ($written < $length) {
+                $chunk = substr($data, $written);
+                $bytes = fwrite($this->fp, $chunk);
 
-                if ($fwrite === false || $fwrite === 0) {
-                    throw new SocketConnectionException(
-                        sprintf(
-                            'Socket write failed: fwrite returned %s (bytes attempted: %d)',
-                            var_export($fwrite, true),
-                            strlen($partOfString)
-                        )
-                    );
+                if ($bytes === false || $bytes === 0) {
+                    throw new SocketConnectionException(sprintf(
+                        'Socket write failed (attempted %d bytes)',
+                        strlen($chunk)
+                    ));
                 }
+
+                $written += $bytes;
             }
         } catch (Throwable $e) {
             $this->state = ConnectionState::ERROR;
             throw $e;
+        } finally {
+            if ($this->state !== ConnectionState::ERROR) {
+                $this->state = ConnectionState::CONNECTED;
+            }
         }
-
-        $this->state = ConnectionState::CONNECTED;
     }
 
     /**
@@ -164,13 +182,7 @@ final class SocketConnection
             $response = stream_get_contents($this->fp, $length);
 
             if ($response === false) {
-                $errorMessage = sprintf(
-                    'Socket read failed: stream_get_contents returned %s (length: %d)',
-                    var_export($response, true),
-                    $length
-                );
-
-                throw new SocketConnectionException($errorMessage);
+                throw new SocketConnectionException('Socket read failed');
             }
 
             $meta = stream_get_meta_data($this->fp);
@@ -178,6 +190,12 @@ final class SocketConnection
             if ($meta['timed_out']) {
                 throw new SocketConnectionException(
                     'Read timeout'
+                );
+            }
+
+            if ($meta['eof'] && ($response === '')) {
+                throw new SocketConnectionException(
+                    'Unexpected EOF'
                 );
             }
 
