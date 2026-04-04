@@ -20,13 +20,21 @@ declare(strict_types=1);
 namespace Mp3StreamTitle\Infrastructure\Http;
 
 use InvalidArgumentException;
+use LogicException;
+use Mp3StreamTitle\Infrastructure\Http\Enum\ConnectionState;
+use Throwable;
 
 final class SocketConnection
 {
     /**
-     * @var mixed
+     * @var resource|null
      */
-    private mixed $fp;
+    private $fp = null;
+
+    /**
+     * The current state of the connection.
+     */
+    private ConnectionState $state = ConnectionState::INITIAL;
 
     /**
      * @param string $host
@@ -35,30 +43,43 @@ final class SocketConnection
      * @param int $timeout
      */
     public function __construct(
-        string $host,
-        int $port,
-        string $transport,
-        int $timeout
+        private readonly string $host,
+        private readonly int $port,
+        private readonly string $transport,
+        private readonly int $timeout
     ) {
         if ($timeout <= 0) {
             throw new InvalidArgumentException(
                 'Timeout must be greater than 0 seconds'
             );
         }
+    }
 
-        $remoteAddress = sprintf('%s://%s', $transport, $host);
+    public function open(): void
+    {
+        if ($this->state !== ConnectionState::INITIAL) {
+            throw new LogicException(
+                'Connection already initialized'
+            );
+        }
+
+        $this->state = ConnectionState::CONNECTING;
+
+        $remoteAddress = sprintf('%s://%s', $this->transport, $this->host);
 
         $fp = fsockopen(
             $remoteAddress,
-            $port,
+            $this->port,
             $errno,
             $errstr,
-            $timeout
+            $this->timeout
         );
 
         if ($fp === false) {
+            $this->state = ConnectionState::ERROR;
+
             $errorMessage = sprintf(
-                'An error occurred while using sockets. %s (%d)',
+                'Connection failed: %s (%d)',
                 $errstr,
                 $errno
             );
@@ -66,44 +87,60 @@ final class SocketConnection
             throw new SocketConnectionException($errorMessage);
         }
 
-        if (stream_set_blocking($fp, true) === false) {
+        if (!stream_set_blocking($fp, true)) {
+            $this->state = ConnectionState::ERROR;
+
             throw new SocketConnectionException(
                 'Unable to set stream to blocking mode'
             );
         }
 
-        if (stream_set_timeout($fp, $timeout) === false) {
+        if (!stream_set_timeout($fp, $this->timeout)) {
+            $this->state = ConnectionState::ERROR;
+
             throw new SocketConnectionException(
                 'Unable to set stream timeout'
             );
         }
 
         $this->fp = $fp;
+        $this->state = ConnectionState::CONNECTED;
     }
 
     /**
-     * @param string $headers
+     * @param string $data
      *
      * @return void
      */
-    public function write(string $headers): void
+    public function write(string $data): void
     {
-        $stringLength = strlen($headers);
+        $this->assertConnected();
 
-        for ($written = 0; $written < $stringLength; $written += $fwrite) {
-            $partOfString = substr($headers, $written);
-            $fwrite = fwrite($this->fp, $partOfString);
+        $this->state = ConnectionState::WRITING;
 
-            if ($fwrite === false || $fwrite === 0) {
-                throw new SocketConnectionException(
-                    sprintf(
-                        'Socket write failed: fwrite returned %s (bytes attempted: %d)',
-                        var_export($fwrite, true),
-                        strlen($partOfString)
-                    )
-                );
+        try {
+            $stringLength = strlen($data);
+
+            for ($written = 0; $written < $stringLength; $written += $fwrite) {
+                $partOfString = substr($data, $written);
+                $fwrite = fwrite($this->fp, $partOfString);
+
+                if ($fwrite === false || $fwrite === 0) {
+                    throw new SocketConnectionException(
+                        sprintf(
+                            'Socket write failed: fwrite returned %s (bytes attempted: %d)',
+                            var_export($fwrite, true),
+                            strlen($partOfString)
+                        )
+                    );
+                }
             }
+        } catch (Throwable $e) {
+            $this->state = ConnectionState::ERROR;
+            throw $e;
         }
+
+        $this->state = ConnectionState::CONNECTED;
     }
 
     /**
@@ -113,27 +150,46 @@ final class SocketConnection
      */
     public function read(int $length): string
     {
-        $response = stream_get_contents($this->fp, $length);
-
-        if ($response === false || $response === '') {
-            $errorMessage = sprintf(
-                'Socket read failed: stream_get_contents returned %s (length: %d)',
-                var_export($response, true),
-                $length
-            );
-
-            throw new SocketConnectionException($errorMessage);
-        }
-
-        $meta = stream_get_meta_data($this->fp);
-
-        if ($meta['timed_out']) {
-            throw new SocketConnectionException(
-                'Read timeout'
+        if ($length <= 0) {
+            throw new InvalidArgumentException(
+                'Length must be greater than 0'
             );
         }
 
-        return $response;
+        $this->assertConnected();
+
+        $this->state = ConnectionState::READING;
+
+        try {
+            $response = stream_get_contents($this->fp, $length);
+
+            if ($response === false) {
+                $errorMessage = sprintf(
+                    'Socket read failed: stream_get_contents returned %s (length: %d)',
+                    var_export($response, true),
+                    $length
+                );
+
+                throw new SocketConnectionException($errorMessage);
+            }
+
+            $meta = stream_get_meta_data($this->fp);
+
+            if ($meta['timed_out']) {
+                throw new SocketConnectionException(
+                    'Read timeout'
+                );
+            }
+
+            return $response;
+        } catch (Throwable $e) {
+            $this->state = ConnectionState::ERROR;
+            throw $e;
+        } finally {
+            if ($this->state !== ConnectionState::ERROR) {
+                $this->state = ConnectionState::CONNECTED;
+            }
+        }
     }
 
     /**
@@ -141,6 +197,38 @@ final class SocketConnection
      */
     public function close(): void
     {
-        fclose($this->fp);
+        if ($this->state === ConnectionState::CLOSED) {
+            return;
+        }
+
+        if (is_resource($this->fp)) {
+            fclose($this->fp);
+        }
+
+        $this->fp = null;
+        $this->state = ConnectionState::CLOSED;
+    }
+
+    public function getState(): ConnectionState
+    {
+        return $this->state;
+    }
+
+    private function assertConnected(): void
+    {
+        if ($this->state !== ConnectionState::CONNECTED) {
+            throw new LogicException(
+                sprintf(
+                    'Invalid state: expected CONNECTED, received %s',
+                    $this->state->value
+                )
+            );
+        }
+
+        if (!is_resource($this->fp)) {
+            throw new LogicException(
+                'Socket resource is not available'
+            );
+        }
     }
 }
