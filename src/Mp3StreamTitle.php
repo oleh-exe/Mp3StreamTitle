@@ -185,6 +185,8 @@ final class Mp3StreamTitle
             30,
         );
 
+        $socket->open();
+
         // HTTP-request headers.
         $headers = "GET " . $endpoint->getRequestTarget() . " HTTP/1.0\r\n";
         $headers .= "User-Agent: " . $this->config->userAgent . "\r\n";
