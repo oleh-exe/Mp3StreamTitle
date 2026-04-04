@@ -26,6 +26,7 @@ use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
 use Mp3StreamTitle\Infrastructure\Http\SocketConnection;
 use Mp3StreamTitle\Infrastructure\Http\ValueObject\StreamEndpoint;
 use RuntimeException;
+use Throwable;
 
 final class Mp3StreamTitle
 {
@@ -163,6 +164,7 @@ final class Mp3StreamTitle
      *
      * @param string $streamingUrl
      * @return string
+     * @throws Throwable
      */
     private function sendSocket(string $streamingUrl): string
     {
