@@ -19,9 +19,9 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http;
 
+use Mp3StreamTitle\Infrastructure\Http\Enum\ConnectionState;
 use InvalidArgumentException;
 use LogicException;
-use Mp3StreamTitle\Infrastructure\Http\Enum\ConnectionState;
 use Throwable;
 
 final class SocketConnection
@@ -55,8 +55,17 @@ final class SocketConnection
         }
     }
 
+    /**
+     * @throws Throwable
+     */
     public function open(): void
     {
+        if ($this->state === ConnectionState::ERROR) {
+            throw new LogicException(
+                'Connection cannot be reused after failure'
+            );
+        }
+
         if (
             !in_array($this->state, [ConnectionState::INITIAL, ConnectionState::CLOSED], true)
         ) {
@@ -81,15 +90,13 @@ final class SocketConnection
         );
 
         if ($fp === false) {
-            $this->state = ConnectionState::ERROR;
-
             $errorMessage = sprintf(
                 'Connection failed: %s (%d)',
                 $errstr,
                 $errno
             );
 
-            throw new SocketConnectionException($errorMessage);
+            $this->fail(new SocketConnectionException($errorMessage));
         }
 
         try {
@@ -112,14 +119,7 @@ final class SocketConnection
             $this->fp = $fp;
             $this->state = ConnectionState::CONNECTED;
         } catch (Throwable $e) {
-            if (is_resource($fp)) {
-                fclose($fp);
-            }
-
-            $this->fp = null;
-            $this->state = ConnectionState::ERROR;
-
-            throw $e;
+            $this->fail($e);
         }
     }
 
@@ -127,6 +127,7 @@ final class SocketConnection
      * @param string $data
      *
      * @return void
+     * @throws Throwable
      */
     public function write(string $data): void
     {
@@ -154,8 +155,7 @@ final class SocketConnection
                 $written += $bytes;
             }
         } catch (Throwable $e) {
-            $this->state = ConnectionState::ERROR;
-            throw $e;
+            $this->fail($e);
         } finally {
             if ($this->state !== ConnectionState::ERROR) {
                 $this->state = ConnectionState::CONNECTED;
@@ -167,20 +167,21 @@ final class SocketConnection
      * @param int $length
      *
      * @return string
+     * @throws Throwable
      */
     public function read(int $length): string
     {
-        if ($length <= 0) {
-            throw new InvalidArgumentException(
-                'Length must be greater than 0'
-            );
-        }
-
         $this->assertConnected();
 
         $this->state = ConnectionState::READING;
 
         try {
+            if ($length <= 0) {
+                throw new InvalidArgumentException(
+                    'Length must be greater than 0'
+                );
+            }
+
             $response = stream_get_contents($this->fp, $length);
 
             if ($response === false) {
@@ -205,8 +206,7 @@ final class SocketConnection
 
             return $response;
         } catch (Throwable $e) {
-            $this->state = ConnectionState::ERROR;
-            throw $e;
+            $this->fail($e);
         } finally {
             if ($this->state !== ConnectionState::ERROR) {
                 $this->state = ConnectionState::CONNECTED;
@@ -219,16 +219,15 @@ final class SocketConnection
      */
     public function close(): void
     {
-        if ($this->state === ConnectionState::CLOSED) {
-            return;
-        }
-
         if (is_resource($this->fp)) {
             fclose($this->fp);
         }
 
         $this->fp = null;
-        $this->state = ConnectionState::CLOSED;
+
+        if ($this->state !== ConnectionState::ERROR) {
+            $this->state = ConnectionState::CLOSED;
+        }
     }
 
     /**
@@ -258,5 +257,22 @@ final class SocketConnection
                 'Socket resource is not available'
             );
         }
+    }
+
+    /**
+     * @param Throwable $e
+     * @return never
+     * @throws Throwable
+     */
+    private function fail(Throwable $e): never
+    {
+        if (is_resource($this->fp)) {
+            fclose($this->fp);
+        }
+
+        $this->fp = null;
+        $this->state = ConnectionState::ERROR;
+
+        throw $e;
     }
 }
