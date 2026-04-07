@@ -210,7 +210,9 @@ final class SocketConnection
                         );
                     }
 
-                    continue;
+                    throw new SocketConnectionException(
+                        'Empty read without EOF or timeout'
+                    );
                 }
 
                 $chunkLength = strlen($chunk);
