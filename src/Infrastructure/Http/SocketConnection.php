@@ -80,7 +80,7 @@ final class SocketConnection
 
         $this->state = ConnectionState::CONNECTING;
 
-        $remoteAddress = sprintf('%s://%s', $this->transport->value, $this->host);
+        $remoteAddress = sprintf('%s://%s', $this->transport->toSocketScheme(), $this->host);
 
         $fp = fsockopen(
             $remoteAddress,
