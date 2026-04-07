@@ -142,13 +142,15 @@ final class SocketConnection
 
             while ($written < $length) {
                 $chunk = substr($data, $written);
+                $chunkLength = strlen($chunk);
+
                 $bytes = fwrite($this->fp, $chunk);
 
                 if ($bytes === false || $bytes === 0) {
                     throw new SocketConnectionException(
                         sprintf(
                             'Socket write failed (attempted %d bytes)',
-                            strlen($chunk)
+                            $chunkLength
                         )
                     );
                 }
@@ -193,22 +195,28 @@ final class SocketConnection
                     );
                 }
 
+                if ($chunk === '') {
+                    $meta = stream_get_meta_data($this->fp);
+
+                    if ($meta['timed_out']) {
+                        throw new SocketConnectionException(
+                            'Read timeout'
+                        );
+                    }
+
+                    if ($meta['eof']) {
+                        throw new SocketConnectionException(
+                            'Unexpected EOF'
+                        );
+                    }
+
+                    continue;
+                }
+
+                $chunkLength = strlen($chunk);
+
                 $buffer .= $chunk;
-                $remaining -= strlen($chunk);
-            }
-
-            $meta = stream_get_meta_data($this->fp);
-
-            if ($meta['timed_out']) {
-                throw new SocketConnectionException(
-                    'Read timeout'
-                );
-            }
-
-            if ($meta['eof']) {
-                throw new SocketConnectionException(
-                    'Unexpected EOF'
-                );
+                $remaining -= $chunkLength;
             }
 
             $this->state = ConnectionState::CONNECTED;
