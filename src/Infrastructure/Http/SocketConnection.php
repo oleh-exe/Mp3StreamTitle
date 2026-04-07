@@ -154,12 +154,10 @@ final class SocketConnection
 
                 $written += $bytes;
             }
+
+            $this->state = ConnectionState::CONNECTED;
         } catch (Throwable $e) {
             $this->fail($e);
-        } finally {
-            if ($this->state !== ConnectionState::ERROR) {
-                $this->state = ConnectionState::CONNECTED;
-            }
         }
     }
 
@@ -182,12 +180,20 @@ final class SocketConnection
                 );
             }
 
-            $response = stream_get_contents($this->fp, $length);
+            $remaining = $length;
+            $buffer = '';
 
-            if ($response === false) {
-                throw new SocketConnectionException(
-                    'Socket read failed'
-                );
+            while ($remaining > 0) {
+                $chunk = stream_get_contents($this->fp, $remaining);
+
+                if ($chunk === false) {
+                    throw new SocketConnectionException(
+                        'Socket read failed'
+                    );
+                }
+
+                $buffer .= $chunk;
+                $remaining -= strlen($chunk);
             }
 
             $meta = stream_get_meta_data($this->fp);
@@ -198,19 +204,17 @@ final class SocketConnection
                 );
             }
 
-            if ($meta['eof'] && ($response === '')) {
+            if ($meta['eof']) {
                 throw new SocketConnectionException(
                     'Unexpected EOF'
                 );
             }
 
-            return $response;
+            $this->state = ConnectionState::CONNECTED;
+
+            return $buffer;
         } catch (Throwable $e) {
             $this->fail($e);
-        } finally {
-            if ($this->state !== ConnectionState::ERROR) {
-                $this->state = ConnectionState::CONNECTED;
-            }
         }
     }
 
