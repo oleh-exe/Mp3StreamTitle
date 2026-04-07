@@ -21,6 +21,7 @@ namespace Mp3StreamTitle\Infrastructure\Http\ValueObject;
 
 use InvalidArgumentException;
 use Mp3StreamTitle\Infrastructure\Http\Enum\Scheme;
+use Mp3StreamTitle\Infrastructure\Http\Enum\Transport;
 use ValueError;
 
 final readonly class StreamEndpoint
@@ -180,23 +181,23 @@ final readonly class StreamEndpoint
     }
 
     /**
-     * Retrieves the scheme associated with the instance.
+     * Retrieves the scheme.
      *
-     * @return string The scheme value (e.g. "http", "https").
+     * @return Scheme The scheme associated with this instance.
      */
-    public function getScheme(): string
+    public function getScheme(): Scheme
     {
-        return $this->scheme->value;
+        return $this->scheme;
     }
 
     /**
-     * Retrieves the transport representation of the scheme.
+     * Retrieves the transport.
      *
-     * @return string The transport value as a string.
+     * @return Transport The transport derived from the current scheme.
      */
-    public function getTransport(): string
+    public function getTransport(): Transport
     {
-        return $this->scheme->toTransport()->value;
+        return $this->scheme->toTransport();
     }
 
     /**
