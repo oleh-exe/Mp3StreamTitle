@@ -26,6 +26,16 @@ enum Transport: string
     case TLS = 'tls';
 
     /**
+     * Converts and returns the current value to a socket scheme.
+     *
+     * @return string The socket scheme representation of the value.
+     */
+    public function toSocketScheme(): string
+    {
+        return $this->value;
+    }
+
+    /**
      * Determines if the current instance represents a secure protocol.
      *
      * @return bool True if the current instance is secure, otherwise false.
