@@ -118,7 +118,7 @@ final readonly class StreamEndpoint
         $port = $parts['port'] ?? null;
 
         try {
-            $scheme = Scheme::from($parts['scheme']);
+            $scheme = Scheme::from(strtolower($parts['scheme']));
         } catch (ValueError) {
             throw new InvalidArgumentException(
                 'Invalid or unsupported URL scheme'
