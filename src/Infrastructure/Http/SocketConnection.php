@@ -102,16 +102,12 @@ final class SocketConnection
 
         try {
             if (!stream_set_blocking($fp, true)) {
-                $this->state = ConnectionState::ERROR;
-
                 throw new SocketConnectionException(
                     'Unable to set stream to blocking mode'
                 );
             }
 
             if (!stream_set_timeout($fp, $this->timeout)) {
-                $this->state = ConnectionState::ERROR;
-
                 throw new SocketConnectionException(
                     'Unable to set stream timeout'
                 );
@@ -187,7 +183,7 @@ final class SocketConnection
             $buffer = '';
 
             while ($remaining > 0) {
-                $chunk = stream_get_contents($this->fp, $remaining);
+                $chunk = fread($this->fp, $remaining);
 
                 if ($chunk === false) {
                     throw new SocketConnectionException(
