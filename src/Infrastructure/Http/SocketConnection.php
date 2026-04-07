@@ -20,6 +20,7 @@ declare(strict_types=1);
 namespace Mp3StreamTitle\Infrastructure\Http;
 
 use Mp3StreamTitle\Infrastructure\Http\Enum\ConnectionState;
+use Mp3StreamTitle\Infrastructure\Http\Enum\Transport;
 use InvalidArgumentException;
 use LogicException;
 use Throwable;
@@ -39,13 +40,13 @@ final class SocketConnection
     /**
      * @param string $host
      * @param int $port
-     * @param string $transport
+     * @param Transport $transport
      * @param int $timeout
      */
     public function __construct(
         private readonly string $host,
         private readonly int $port,
-        private readonly string $transport,
+        private readonly Transport $transport,
         private readonly int $timeout
     ) {
         if ($timeout <= 0) {
@@ -79,7 +80,7 @@ final class SocketConnection
 
         $this->state = ConnectionState::CONNECTING;
 
-        $remoteAddress = sprintf('%s://%s', $this->transport, $this->host);
+        $remoteAddress = sprintf('%s://%s', $this->transport->value, $this->host);
 
         $fp = fsockopen(
             $remoteAddress,
