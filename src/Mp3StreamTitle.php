@@ -180,6 +180,11 @@ final class Mp3StreamTitle
             );
         }
 
+        // HTTP-request headers.
+        $headers = "GET " . $endpoint->getRequestTarget() . " HTTP/1.0\r\n";
+        $headers .= "User-Agent: " . $this->config->userAgent . "\r\n";
+        $headers .= "icy-metadata: 1\r\n\r\n";
+
         $socket = new SocketConnection(
             $endpoint->getHost(),
             $endpoint->getPort(),
@@ -187,26 +192,31 @@ final class Mp3StreamTitle
             30,
         );
 
-        $socket->open();
+        try {
+            $socket->open();
 
-        // HTTP-request headers.
-        $headers = "GET " . $endpoint->getRequestTarget() . " HTTP/1.0\r\n";
-        $headers .= "User-Agent: " . $this->config->userAgent . "\r\n";
-        $headers .= "icy-metadata: 1\r\n\r\n";
+            // Send a request to the stream-server
+            $socket->write($headers);
 
-        // Send a request to the stream-server
-        $socket->write($headers);
+            // Find out how many bytes of data need to be received.
+            $length = $offset + 1 + $this->config->metaMaxLength;
 
-        // Find out how many bytes of data need to be received.
-        $length = $offset + 1 + $this->config->metaMaxLength;
+            // Save the data part into the variable.
+            $buffer = $socket->read($length);
+        } finally {
+            $socket->close();
+        }
 
-        // Save the data part into the variable.
-        $buffer = $socket->read($length);
+        $pos = strpos($buffer, "\r\n\r\n");
 
-        $socket->close();
+        if ($pos === false) {
+            throw new RuntimeException(
+                'Invalid HTTP response: headers not found'
+            );
+        }
 
-        // Separate the headers from the "body".
-        list($tmp, $body) = explode("\r\n\r\n", $buffer, 2);
+        // Separate the "body" from the headers.
+        $body = substr($buffer, $pos + 4);
 
         // Find out length of metadata.
         $metaLength = ord(substr($body, $offset, 1)) * 16;
