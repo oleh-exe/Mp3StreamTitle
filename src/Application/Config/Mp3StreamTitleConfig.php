@@ -20,6 +20,7 @@ declare(strict_types=1);
 namespace Mp3StreamTitle\Application\Config;
 
 use Mp3StreamTitle\Mp3StreamTitle;
+use InvalidArgumentException;
 
 final readonly class Mp3StreamTitleConfig
 {
@@ -66,7 +67,7 @@ final readonly class Mp3StreamTitleConfig
      *
      * @return void
      *
-     * @throws \InvalidArgumentException If the user agent is empty or metaMaxLength exceeds 4080 bytes.
+     * @throws InvalidArgumentException If the user agent is empty or metaMaxLength exceeds 4080 bytes.
      */
     public function __construct(
         int $sendType = Mp3StreamTitle::SEND_CURL,
@@ -75,11 +76,11 @@ final readonly class Mp3StreamTitleConfig
         int $metaMaxLength = 4080
     ) {
         if ($userAgent === '') {
-            throw new \InvalidArgumentException('User-Agent cannot be empty');
+            throw new InvalidArgumentException('User-Agent cannot be empty');
         }
 
         if ($metaMaxLength > 4080) {
-            throw new \InvalidArgumentException('metaMaxLength must be no more than 4080 bytes');
+            throw new InvalidArgumentException('metaMaxLength must be no more than 4080 bytes');
         }
 
         $this->sendType = $sendType;
