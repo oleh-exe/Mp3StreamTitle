@@ -218,17 +218,30 @@ final class Mp3StreamTitle
         // Separate the "body" from the headers.
         $body = substr($buffer, $pos + 4);
 
+        if (strlen($body) <= $offset) {
+            throw new RuntimeException(
+                'Stream body is shorter than metadata offset'
+            );
+        }
+
         if (!isset($body[$offset])) {
             throw new RuntimeException(
                 'Metadata offset is out of bounds'
             );
         }
 
+        $metaStart = $offset + 1;
+
         // Find out length of metadata.
         $metaLength = ord($body[$offset]) * 16;
 
+        if (strlen($body) < $metaStart + $metaLength) {
+            throw new RuntimeException(
+                'Incomplete metadata block received from stream'
+            );
+        }
+
         // Get metadata in the following format "StreamTitle='artist name and song name';".
-        $metaStart = $offset + 1;
         $metadata = substr($body, $metaStart, $metaLength);
 
         // Return the result of the request.
