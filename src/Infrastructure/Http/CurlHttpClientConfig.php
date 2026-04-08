@@ -68,7 +68,7 @@ final readonly class CurlHttpClientConfig
      * @throws InvalidArgumentException If any argument is invalid (e.g., empty User-Agent, invalid timeout values, etc.).
      */
     public function __construct(
-        string $userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36',
+        string $userAgent = 'Mp3StreamTitle/1.0 (PHP 8.2; +https://github.com/oleh-exe/mp3-stream-title)',
         array $headers = ['Icy-MetaData: 1'],
         int $timeout = 30,
         int $connectTimeout = 10,
