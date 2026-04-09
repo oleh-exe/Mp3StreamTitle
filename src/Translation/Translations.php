@@ -17,7 +17,7 @@
 
 declare(strict_types=1);
 
-namespace Mp3StreamTitle;
+namespace Mp3StreamTitle\Translation;
 
 class Translations
 {
