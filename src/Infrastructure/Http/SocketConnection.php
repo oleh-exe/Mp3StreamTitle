@@ -19,10 +19,11 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http;
 
-use Mp3StreamTitle\Infrastructure\Http\Enum\ConnectionState;
-use Mp3StreamTitle\Infrastructure\Http\Enum\Transport;
 use InvalidArgumentException;
 use LogicException;
+use Mp3StreamTitle\Exception\SocketConnectionException;
+use Mp3StreamTitle\Infrastructure\Http\Enum\ConnectionState;
+use Mp3StreamTitle\Infrastructure\Http\Enum\Transport;
 use Throwable;
 
 final class SocketConnection
