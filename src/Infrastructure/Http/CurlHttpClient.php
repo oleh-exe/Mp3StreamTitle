@@ -20,7 +20,7 @@ declare(strict_types=1);
 namespace Mp3StreamTitle\Infrastructure\Http;
 
 use InvalidArgumentException;
-use Mp3StreamTitle\Exception\CurlHttpException;
+use Mp3StreamTitle\Exception\Http\CurlHttpException;
 
 readonly class CurlHttpClient
 {
