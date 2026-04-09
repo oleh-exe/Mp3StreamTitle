@@ -17,7 +17,7 @@
 
 declare(strict_types=1);
 
-namespace Mp3StreamTitle\Infrastructure\Http;
+namespace Mp3StreamTitle\Exception;
 
 use RuntimeException;
 
