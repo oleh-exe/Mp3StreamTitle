@@ -21,9 +21,9 @@ namespace Mp3StreamTitle\Infrastructure\Http;
 
 use InvalidArgumentException;
 use LogicException;
-use Mp3StreamTitle\Exception\SocketConnectionException;
+use Mp3StreamTitle\Domain\ValueObject\Transport;
+use Mp3StreamTitle\Exception\Http\SocketConnectionException;
 use Mp3StreamTitle\Infrastructure\Http\Enum\ConnectionState;
-use Mp3StreamTitle\Infrastructure\Http\Enum\Transport;
 use Throwable;
 
 final class SocketConnection
