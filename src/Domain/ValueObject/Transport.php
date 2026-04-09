@@ -17,7 +17,7 @@
 
 declare(strict_types=1);
 
-namespace Mp3StreamTitle\Infrastructure\Http\Enum;
+namespace Mp3StreamTitle\Domain\ValueObject;
 
 enum Transport: string
 {
