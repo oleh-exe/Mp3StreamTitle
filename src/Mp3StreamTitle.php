@@ -20,11 +20,11 @@ declare(strict_types=1);
 namespace Mp3StreamTitle;
 
 use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
+use Mp3StreamTitle\Domain\ValueObject\StreamEndpoint;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClient;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClientConfig;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
 use Mp3StreamTitle\Infrastructure\Http\SocketConnection;
-use Mp3StreamTitle\Infrastructure\Http\ValueObject\StreamEndpoint;
 use RuntimeException;
 use Throwable;
 
