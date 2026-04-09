@@ -17,11 +17,9 @@
 
 declare(strict_types=1);
 
-namespace Mp3StreamTitle\Infrastructure\Http\ValueObject;
+namespace Mp3StreamTitle\Domain\ValueObject;
 
 use InvalidArgumentException;
-use Mp3StreamTitle\Infrastructure\Http\Enum\Scheme;
-use Mp3StreamTitle\Infrastructure\Http\Enum\Transport;
 use ValueError;
 
 final readonly class StreamEndpoint
