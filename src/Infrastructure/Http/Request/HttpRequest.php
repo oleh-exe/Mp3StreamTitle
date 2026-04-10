@@ -19,25 +19,51 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http\Request;
 
+use InvalidArgumentException;
+use Mp3StreamTitle\Infrastructure\Http\Enum\HttpVersion;
+use ValueError;
+
 final class HttpRequest
 {
-    public function __construct()
-    {
+    private string $target;
+
+    private array $headers;
+
+    private string $method = 'GET';
+
+    private HttpVersion $httpVersion;
+
+    public function __construct(
+        string $target,
+        array $headers,
+        string $version = '1.1'
+    ) {
+        try {
+            $this->httpVersion = HttpVersion::from($version);
+        } catch (ValueError) {
+            throw new InvalidArgumentException(
+                'Invalid HTTP version'
+            );
+        }
     }
 
-    public function method()
+    public function method(): string
     {
+        return $this->method;
     }
 
-    public function target()
+    public function target(): string
     {
+        return $this->target;
     }
 
-    public function version()
+    public function version(): string
     {
+        return 'HTTP/' . $this->httpVersion->value;
     }
 
-    public function headers()
+    public function headers(): array
     {
+        return $this->headers;
     }
 }
