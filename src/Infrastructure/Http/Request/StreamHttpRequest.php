@@ -23,39 +23,39 @@ use InvalidArgumentException;
 use Mp3StreamTitle\Infrastructure\Http\Enum\HttpMethod;
 use Mp3StreamTitle\Infrastructure\Http\Enum\HttpVersion;
 
-final class StreamHttpRequest
+final readonly class StreamHttpRequest
 {
     /**
      * @var HttpMethod
      */
-    private readonly HttpMethod $method;
+    private HttpMethod $method;
 
     /**
      * @var array
      */
-    private readonly array $headers;
+    private array $headers;
 
     /**
      * @var string
      */
-    private readonly string $target;
+    private string $target;
 
     /**
      * @var HttpVersion
      */
-    private readonly HttpVersion $httpVersion;
+    private HttpVersion $httpVersion;
 
     /**
+     * @param string $target
      * @param HttpMethod $method
      * @param array $headers
-     * @param string $target
      * @param HttpVersion $httpVersion
      */
-    public function __construct(
-        HttpMethod $method,
+    private function __construct(
         string $target,
-        array $headers = [],
-        HttpVersion $httpVersion = HttpVersion::HTTP_1_0,
+        HttpMethod $method,
+        array $headers,
+        HttpVersion $httpVersion
     ) {
         if (empty($target)) {
             throw new InvalidArgumentException(
@@ -69,20 +69,31 @@ final class StreamHttpRequest
             );
         }
 
-        $headers = $this->normalizeAndValidateHeaders($headers);
-
         $this->target = $target;
         $this->method = $method;
-        $this->headers = $headers;
+        $this->headers = $this->normalizeAndValidateHeaders($headers);
         $this->httpVersion = $httpVersion;
     }
 
+    public static function forStream(
+        string $target,
+        array $headers = [],
+        HttpVersion $httpVersion = HttpVersion::HTTP_1_0,
+    ): self {
+        return new self(
+            $target,
+            HttpMethod::GET,
+            $headers,
+            $httpVersion
+        );
+    }
+
     /**
-     * @return string
+     * @return HttpMethod
      */
-    public function method(): string
+    public function method(): HttpMethod
     {
-        return $this->method->value;
+        return $this->method;
     }
 
     /**
