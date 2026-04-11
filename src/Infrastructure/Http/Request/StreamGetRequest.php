@@ -23,7 +23,7 @@ use InvalidArgumentException;
 use Mp3StreamTitle\Infrastructure\Http\Enum\HttpMethod;
 use Mp3StreamTitle\Infrastructure\Http\Enum\HttpVersion;
 
-final readonly class StreamHttpRequest
+final readonly class StreamGetRequest
 {
     /**
      * @var HttpMethod
