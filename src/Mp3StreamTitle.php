@@ -181,9 +181,9 @@ final class Mp3StreamTitle
         }
 
         // HTTP-request headers.
-        $headers = "GET " . $endpoint->getRequestTarget() . " HTTP/1.1\r\n";
+        $headers = "GET " . $endpoint->getRequestTarget() . " HTTP/1.0\r\n";
         $headers .= "User-Agent: " . $this->config->userAgent . "\r\n";
-        $headers .= "icy-metadata: 1\r\n\r\n";
+        $headers .= "Icy-MetaData: 1\r\n\r\n";
 
         $socket = new SocketConnection(
             $endpoint->getHost(),
@@ -267,7 +267,7 @@ final class Mp3StreamTitle
             // HTTP-request headers.
             $optionsMethod = "GET";
             $optionsHeader = "User-Agent: " . $this->config->userAgent . "\r\n";
-            $optionsHeader .= "icy-metadata: 1\r\n\r\n";
+            $optionsHeader .= "Icy-MetaData: 1\r\n\r\n";
 
             $options = [
                 'http' => [
@@ -352,7 +352,7 @@ final class Mp3StreamTitle
         // HTTP-request headers.
         $optionsMethod = "GET";
         $optionsHeader = "User-Agent: " . $this->config->userAgent . "\r\n";
-        $optionsHeader .= "icy-metadata: 1\r\n\r\n";
+        $optionsHeader .= "Icy-MetaData: 1\r\n\r\n";
 
         $options = [
             'http' => [
