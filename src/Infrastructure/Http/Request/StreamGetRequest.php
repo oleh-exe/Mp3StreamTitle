@@ -26,6 +26,11 @@ use Mp3StreamTitle\Infrastructure\Http\Enum\HttpVersion;
 final readonly class StreamGetRequest
 {
     /**
+     * @var string
+     */
+    private string $target;
+
+    /**
      * @var HttpMethod
      */
     private HttpMethod $method;
@@ -34,11 +39,6 @@ final readonly class StreamGetRequest
      * @var array
      */
     private array $headers;
-
-    /**
-     * @var string
-     */
-    private string $target;
 
     /**
      * @var HttpVersion
@@ -53,9 +53,9 @@ final readonly class StreamGetRequest
      */
     private function __construct(
         string $target,
-        HttpMethod $method,
         array $headers,
-        HttpVersion $httpVersion
+        HttpVersion $httpVersion,
+        HttpMethod $method,
     ) {
         if (empty($target)) {
             throw new InvalidArgumentException(
@@ -70,21 +70,22 @@ final readonly class StreamGetRequest
         }
 
         $this->target = $target;
-        $this->method = $method;
         $this->headers = $this->normalizeAndValidateHeaders($headers);
         $this->httpVersion = $httpVersion;
+        $this->method = $method;
     }
 
-    public static function forStream(
+    public static function fromStream(
         string $target,
         array $headers = [],
         HttpVersion $httpVersion = HttpVersion::HTTP_1_0,
+        HttpMethod $method = HttpMethod::GET
     ): self {
         return new self(
-            $target,
-            HttpMethod::GET,
-            $headers,
-            $httpVersion
+            target: $target,
+            headers: $headers,
+            httpVersion: $httpVersion,
+            method: $method,
         );
     }
 
