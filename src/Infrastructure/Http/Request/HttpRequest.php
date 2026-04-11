@@ -25,18 +25,34 @@ use ValueError;
 
 final class HttpRequest
 {
-    private string $target;
+    /**
+     * @var string
+     */
+    private string $method;
 
+    /**
+     * @var array
+     */
     private array $headers;
 
-    private string $method = 'GET';
+    /**
+     * @var string
+     */
+    private string $target;
 
     private HttpVersion $httpVersion;
 
+    /**
+     * @param array $headers
+     * @param string $target
+     * @param string $version
+     * @param string $method
+     */
     public function __construct(
-        string $target,
-        array $headers,
-        string $version = '1.1'
+        array $headers = array(),
+        string $target = '',
+        string $version = '1.1',
+        string $method = 'GET'
     ) {
         try {
             $this->httpVersion = HttpVersion::from($version);
@@ -45,25 +61,60 @@ final class HttpRequest
                 'Invalid HTTP version'
             );
         }
+
+        if (empty($method)) {
+            throw new InvalidArgumentException(
+                'Method cannot be empty'
+            );
+        }
+
+        $this->headers = $headers;
+        $this->target = $target;
+        $this->method = $method;
     }
 
+    /**
+     * @return string
+     */
     public function method(): string
     {
         return $this->method;
     }
 
+    /**
+     * @return string
+     */
     public function target(): string
     {
         return $this->target;
     }
 
+    /**
+     * @return string
+     */
     public function version(): string
     {
         return 'HTTP/' . $this->httpVersion->value;
     }
 
-    public function headers(): array
+    /**
+     * @return string
+     */
+    public function headers(): string
     {
-        return $this->headers;
+        $headers = array();
+
+        foreach ($this->headers as $key => $value) {
+            $headers[] = $key . ': ' . $value;
+        }
+
+        return implode("\r\n", $headers) . "\r\n\r\n";
+    }
+
+    public function toString(): string
+    {
+        $requestLine = $this->method() . ' ' . $this->target() . ' ' . $this->version() . "\r\n";
+
+        return $requestLine . $this->headers();
     }
 }
