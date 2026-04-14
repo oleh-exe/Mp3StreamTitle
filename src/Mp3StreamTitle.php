@@ -23,7 +23,10 @@ use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
 use Mp3StreamTitle\Domain\ValueObject\StreamEndpoint;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClient;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClientConfig;
+use Mp3StreamTitle\Infrastructure\Http\Enum\HttpMethod;
+use Mp3StreamTitle\Infrastructure\Http\Enum\HttpVersion;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
+use Mp3StreamTitle\Infrastructure\Http\Request\StreamGetRequest;
 use Mp3StreamTitle\Infrastructure\Http\SocketConnection;
 use RuntimeException;
 use Throwable;
@@ -180,11 +183,6 @@ final class Mp3StreamTitle
             );
         }
 
-        // HTTP-request headers.
-        $headers = "GET " . $endpoint->getRequestTarget() . " HTTP/1.0\r\n";
-        $headers .= "User-Agent: " . $this->config->userAgent . "\r\n";
-        $headers .= "Icy-MetaData: 1\r\n\r\n";
-
         $socket = new SocketConnection(
             $endpoint->getHost(),
             $endpoint->getPort(),
@@ -192,11 +190,21 @@ final class Mp3StreamTitle
             30,
         );
 
+        $request = StreamGetRequest::fromStream(
+            method: HttpMethod::GET,
+            target: $endpoint->getRequestTarget(),
+            httpVersion: HttpVersion::HTTP_1_0,
+            headers: [
+                'User-Agent' => $this->config->userAgent,
+                'Icy-MetaData' => '1',
+            ],
+        );
+
         try {
             $socket->open();
 
             // Send a request to the stream-server
-            $socket->write($headers);
+            $socket->write($request->serialize());
 
             // Find out how many bytes of data need to be received.
             $length = $offset + 1 + $this->config->metaMaxLength;
