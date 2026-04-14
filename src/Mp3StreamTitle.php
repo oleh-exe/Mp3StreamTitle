@@ -28,6 +28,7 @@ use Mp3StreamTitle\Infrastructure\Http\Enum\HttpVersion;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
 use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequest;
 use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequestSerializer;
+use Mp3StreamTitle\Infrastructure\Http\Request\StreamRequestFactory;
 use Mp3StreamTitle\Infrastructure\Http\SocketConnection;
 use RuntimeException;
 use Throwable;
@@ -191,6 +192,9 @@ final class Mp3StreamTitle
             30,
         );
 
+        $request = new StreamRequestFactory();
+        $httpRequest = $request->create($endpoint, $this->config->userAgent);
+        /*
         $request = new HttpRequest(
             method: HttpMethod::GET,
             target: $endpoint->getRequestTarget(),
@@ -199,7 +203,7 @@ final class Mp3StreamTitle
                 'User-Agent' => $this->config->userAgent,
                 'Icy-MetaData' => '1',
             ],
-        );
+        );*/
 
         $serializer = new HttpRequestSerializer();
 
@@ -207,7 +211,7 @@ final class Mp3StreamTitle
             $socket->open();
 
             // Send a request to the stream-server
-            $socket->write($serializer->toString($request));
+            $socket->write($serializer->toString($httpRequest));
 
             // Find out how many bytes of data need to be received.
             $length = $offset + 1 + $this->config->metaMaxLength;
