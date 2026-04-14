@@ -51,7 +51,7 @@ final readonly class StreamGetRequest
      * @param HttpVersion $httpVersion
      * @param array $headers
      */
-    private function __construct(
+    public function __construct(
         HttpMethod $method,
         string $target,
         HttpVersion $httpVersion,
@@ -73,27 +73,6 @@ final readonly class StreamGetRequest
         $this->target = $target;
         $this->httpVersion = $httpVersion;
         $this->headers = $this->normalizeAndValidateHeaders($headers);
-    }
-
-    /**
-     * @param HttpMethod $method
-     * @param string $target
-     * @param HttpVersion $httpVersion
-     * @param array $headers
-     * @return self
-     */
-    public static function fromStream(
-        HttpMethod $method,
-        string $target,
-        HttpVersion $httpVersion,
-        array $headers = [],
-    ): self {
-        return new self(
-            method: $method,
-            target: $target,
-            httpVersion: $httpVersion,
-            headers: $headers,
-        );
     }
 
     /**
@@ -126,35 +105,6 @@ final readonly class StreamGetRequest
     public function headers(): array
     {
         return $this->headers;
-    }
-
-    /**
-     * @return string
-     */
-    public function serialize(): string
-    {
-        $requestLine = sprintf(
-            '%s %s HTTP/%s' . "\r\n",
-            $this->method->value,
-            $this->target,
-            $this->httpVersion->value
-        );
-
-        return $requestLine . $this->serializeHeaders();
-    }
-
-    /**
-     * @return string
-     */
-    public function serializeHeaders(): string
-    {
-        $lines = [];
-
-        foreach ($this->headers as $key => $value) {
-            $lines[] = $key . ': ' . $value;
-        }
-
-        return implode("\r\n", $lines) . "\r\n\r\n";
     }
 
     /**
