@@ -26,19 +26,14 @@ use Mp3StreamTitle\Infrastructure\Http\Enum\HttpVersion;
 final readonly class StreamGetRequest
 {
     /**
-     * @var string
-     */
-    private string $target;
-
-    /**
      * @var HttpMethod
      */
     private HttpMethod $method;
 
     /**
-     * @var array
+     * @var string
      */
-    private array $headers;
+    private string $target;
 
     /**
      * @var HttpVersion
@@ -46,16 +41,21 @@ final readonly class StreamGetRequest
     private HttpVersion $httpVersion;
 
     /**
-     * @param string $target
+     * @var array
+     */
+    private array $headers;
+
+    /**
      * @param HttpMethod $method
-     * @param array $headers
+     * @param string $target
      * @param HttpVersion $httpVersion
+     * @param array $headers
      */
     private function __construct(
-        string $target,
-        array $headers,
-        HttpVersion $httpVersion,
         HttpMethod $method,
+        string $target,
+        HttpVersion $httpVersion,
+        array $headers,
     ) {
         if (empty($target)) {
             throw new InvalidArgumentException(
@@ -69,23 +69,30 @@ final readonly class StreamGetRequest
             );
         }
 
-        $this->target = $target;
-        $this->headers = $this->normalizeAndValidateHeaders($headers);
-        $this->httpVersion = $httpVersion;
         $this->method = $method;
+        $this->target = $target;
+        $this->httpVersion = $httpVersion;
+        $this->headers = $this->normalizeAndValidateHeaders($headers);
     }
 
+    /**
+     * @param HttpMethod $method
+     * @param string $target
+     * @param HttpVersion $httpVersion
+     * @param array $headers
+     * @return self
+     */
     public static function fromStream(
+        HttpMethod $method,
         string $target,
+        HttpVersion $httpVersion,
         array $headers = [],
-        HttpVersion $httpVersion = HttpVersion::HTTP_1_0,
-        HttpMethod $method = HttpMethod::GET
     ): self {
         return new self(
-            target: $target,
-            headers: $headers,
-            httpVersion: $httpVersion,
             method: $method,
+            target: $target,
+            httpVersion: $httpVersion,
+            headers: $headers,
         );
     }
 
@@ -124,20 +131,6 @@ final readonly class StreamGetRequest
     /**
      * @return string
      */
-    public function serializeHeaders(): string
-    {
-        $lines = [];
-
-        foreach ($this->headers as $key => $value) {
-            $lines[] = $key . ': ' . $value;
-        }
-
-        return implode("\r\n", $lines) . "\r\n\r\n";
-    }
-
-    /**
-     * @return string
-     */
     public function serialize(): string
     {
         $requestLine = sprintf(
@@ -148,6 +141,20 @@ final readonly class StreamGetRequest
         );
 
         return $requestLine . $this->serializeHeaders();
+    }
+
+    /**
+     * @return string
+     */
+    public function serializeHeaders(): string
+    {
+        $lines = [];
+
+        foreach ($this->headers as $key => $value) {
+            $lines[] = $key . ': ' . $value;
+        }
+
+        return implode("\r\n", $lines) . "\r\n\r\n";
     }
 
     /**
