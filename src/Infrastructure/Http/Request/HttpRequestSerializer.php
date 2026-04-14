@@ -19,16 +19,16 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http\Request;
 
-final readonly class StreamGetRequestSerializer
+final readonly class HttpRequestSerializer
 {
     /**
      * Converts the provided StreamGetRequest object into a string representation of an HTTP request.
      *
-     * @param StreamGetRequest $request The request object containing method, target, version, and headers.
+     * @param HttpRequest $request The request object containing method, target, version, and headers.
      *
      * @return string The formatted HTTP request as a string.
      */
-    public function toString(StreamGetRequest $request): string
+    public function toString(HttpRequest $request): string
     {
         $lines = [];
 
