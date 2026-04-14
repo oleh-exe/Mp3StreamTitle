@@ -26,8 +26,8 @@ use Mp3StreamTitle\Infrastructure\Http\CurlHttpClientConfig;
 use Mp3StreamTitle\Infrastructure\Http\Enum\HttpMethod;
 use Mp3StreamTitle\Infrastructure\Http\Enum\HttpVersion;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
-use Mp3StreamTitle\Infrastructure\Http\Request\StreamGetRequest;
-use Mp3StreamTitle\Infrastructure\Http\Request\StreamGetRequestSerializer;
+use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequest;
+use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequestSerializer;
 use Mp3StreamTitle\Infrastructure\Http\SocketConnection;
 use RuntimeException;
 use Throwable;
@@ -191,7 +191,7 @@ final class Mp3StreamTitle
             30,
         );
 
-        $request = new StreamGetRequest(
+        $request = new HttpRequest(
             method: HttpMethod::GET,
             target: $endpoint->getRequestTarget(),
             httpVersion: HttpVersion::HTTP_1_0,
@@ -201,7 +201,7 @@ final class Mp3StreamTitle
             ],
         );
 
-        $serializer = new StreamGetRequestSerializer();
+        $serializer = new HttpRequestSerializer();
 
         try {
             $socket->open();
