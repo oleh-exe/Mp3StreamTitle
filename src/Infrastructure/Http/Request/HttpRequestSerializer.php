@@ -22,7 +22,7 @@ namespace Mp3StreamTitle\Infrastructure\Http\Request;
 final readonly class HttpRequestSerializer
 {
     /**
-     * Converts the provided StreamGetRequest object into a string representation of an HTTP request.
+     * Converts the provided HttpRequest object into a string representation of an HTTP request.
      *
      * @param HttpRequest $request The request object containing method, target, version, and headers.
      *
