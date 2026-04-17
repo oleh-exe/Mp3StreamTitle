@@ -79,7 +79,10 @@ final class Mp3StreamTitle
      * settings to send requests to the stream-server.
      *
      * @param string $streamingUrl
+     *
      * @return string|int
+     *
+     * @throws Throwable
      */
     public function sendRequest(string $streamingUrl): string|int
     {
@@ -91,7 +94,7 @@ final class Mp3StreamTitle
             // Use the FGC-function.
             self::SEND_FGC => $this->sendFGC($streamingUrl),
             // TODO: Finalize
-            default => $this->error('error.invalid_send_type'),
+            //default => $this->error('error.invalid_send_type'),
         };
     }
 
@@ -102,7 +105,9 @@ final class Mp3StreamTitle
      * in the following format "artist name and song name".
      *
      * @param string $streamingUrl A direct URL to the online radio stream.
+     *
      * @return string Metadata containing song information.
+     *
      * @throws RuntimeException If cURL is unavailable or metadata cannot be retrieved.
      */
     private function sendCurl(string $streamingUrl): string
@@ -119,12 +124,6 @@ final class Mp3StreamTitle
         /* Find out from which byte the metadata will begin.
            If successful, continue to perform the function. */
         $offset = $this->getOffset($endpoint->getUrl());
-
-        if (!$offset) {
-            throw new RuntimeException(
-                'Failed to get headers from server response to HTTP-request or "icy-metaint" header value'
-            );
-        }
 
         $parser = new IcyMetadataStreamParser(
             $offset,
@@ -166,8 +165,10 @@ final class Mp3StreamTitle
      * in the following format "artist name and song name".
      *
      * @param string $streamingUrl
+     *
      * @return string
-     * @throws Throwable
+     *
+     * @throws RuntimeException|Throwable
      */
     private function sendSocket(string $streamingUrl): string
     {
@@ -176,12 +177,6 @@ final class Mp3StreamTitle
         /* Find out from which byte the metadata will begin.
            If successful, continue to perform the function. */
         $offset = $this->getOffset($endpoint->getUrl());
-
-        if ($offset === 0) {
-            throw new RuntimeException(
-                'Failed to get headers from server response to HTTP-request or "icy-metaint" header value'
-            );
-        }
 
         $request = new StreamRequestFactory();
         $headers = new HeaderCollection([
@@ -241,7 +236,7 @@ final class Mp3StreamTitle
 
         $metaStart = $offset + 1;
 
-        // Find out length of metadata.
+        // Find out the length of metadata.
         $metaLength = ord($body[$offset]) * 16;
 
         if (strlen($body) < $metaStart + $metaLength) {
@@ -259,7 +254,7 @@ final class Mp3StreamTitle
 
     /**
      * The FGC-function takes as an argument a direct link to an online
-     * radio station stream and opens the stream using the set HTTP-headers.
+     * radio station stream and opens the stream using the set HTTP headers.
      * As a result, the function returns information about the song
      * in the following format "artist name and song name".
      *
@@ -347,17 +342,16 @@ final class Mp3StreamTitle
 
     /**
      * The function takes as an argument a direct link to the stream of the
-     * online radio station and sends an HTTP-request to the stream
+     * online radio station and sends an HTTP request to the stream
      * server. In the server response headers, the function looks for the
      * "icy-metaint" header and returns its value.
      *
      * @param string $streamingUrl
+     *
      * @return int
      */
     private function getOffset(string $streamingUrl): int
     {
-        $result = 0;
-
         // HTTP-request headers.
         $optionsMethod = "GET";
         $optionsHeader = "User-Agent: " . $this->config->userAgent . "\r\n";
@@ -374,17 +368,34 @@ final class Mp3StreamTitle
         // Create a thread context.
         $context = stream_context_create($options);
 
-        // Get the headers from the server response to the HTTP-request.
-        if ($headers = get_headers($streamingUrl, true, $context)) {
-            // Looking for the header "icy-metaint".
-            if (isset($headers['icy-metaint'])) {
-                $value = $headers['icy-metaint'];
-                /* Find out how many bytes of data from the stream you need to read before
-                   the metadata begins (which contains the name of the artist and the name of the song). */
-                $result = is_array($value) ? end($value) : $value;
-                $result = intval($result);
-            }
+        // Get the headers from the server response to the HTTP request.
+        $headers = get_headers($streamingUrl, true, $context);
+
+        if ($headers === false) {
+            throw new RuntimeException(
+                'Failed to get headers from server response to HTTP-request'
+            );
         }
+
+        if (!isset($headers['icy-metaint'])) {
+            throw new RuntimeException(
+                'Failed to get headers from server response to HTTP-request or "icy-metaint" header value'
+            );
+        }
+
+        // Looking for the header "icy-metaint".
+        $value = $headers['icy-metaint'];
+        /* Find out how many bytes of data from the stream you need to read before
+           the metadata begins (which contains the name of the artist and the name of the song). */
+        $result = is_array($value) ? end($value) : $value;
+        $result = intval($result);
+
+        if ($result <= 0) {
+            throw new RuntimeException(
+                'Invalid "icy-metaint" header value'
+            );
+        }
+
         return $result;
     }
 }
