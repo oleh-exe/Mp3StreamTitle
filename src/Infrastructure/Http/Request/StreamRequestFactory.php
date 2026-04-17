@@ -27,19 +27,17 @@ final class StreamRequestFactory
 {
     /**
      * @param StreamEndpoint $endpoint
-     * @param string $userAgent
+     * @param HeaderCollection $headers
+     *
      * @return HttpRequest
      */
-    public function create(StreamEndpoint $endpoint, string $userAgent): HttpRequest
+    public function create(StreamEndpoint $endpoint, HeaderCollection $headers): HttpRequest
     {
         return new HttpRequest(
             method: HttpMethod::GET,
             target: $endpoint->getRequestTarget(),
             httpVersion: HttpVersion::HTTP_1_0,
-            headers: [
-                'User-Agent' => $userAgent,
-                'Icy-MetaData' => '1',
-            ],
+            headers: $headers,
         );
     }
 }
