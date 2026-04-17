@@ -24,6 +24,7 @@ use Mp3StreamTitle\Domain\ValueObject\StreamEndpoint;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClient;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClientConfig;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
+use Mp3StreamTitle\Infrastructure\Http\Request\HeaderCollection;
 use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequestSerializer;
 use Mp3StreamTitle\Infrastructure\Http\Request\StreamRequestFactory;
 use Mp3StreamTitle\Infrastructure\Http\SocketConnection;
@@ -182,15 +183,20 @@ final class Mp3StreamTitle
             );
         }
 
+        $request = new StreamRequestFactory();
+        $headers = new HeaderCollection([
+            'User-Agent' => $this->config->userAgent,
+            'Icy-MetaData' => '1',
+        ]);
+
+        $httpRequest = $request->create($endpoint, $headers);
+
         $socket = new SocketConnection(
             $endpoint->getHost(),
             $endpoint->getPort(),
             $endpoint->getTransport(),
             30,
         );
-
-        $request = new StreamRequestFactory();
-        $httpRequest = $request->create($endpoint, $this->config->userAgent);
 
         $serializer = new HttpRequestSerializer();
 
