@@ -32,7 +32,7 @@ final readonly class HttpRequestSerializer
     {
         $lines = [];
 
-        foreach ($request->headers() as $name => $value) {
+        foreach ($request->headers()->all() as $name => $value) {
             $lines[] = $name . ': ' . $value;
         }
 
