@@ -186,6 +186,7 @@ final class Mp3StreamTitle
         $request = new StreamRequestFactory();
         $headers = new HeaderCollection([
             'User-Agent' => $this->config->userAgent,
+            'Host' => $endpoint->getHost(),
             'Icy-MetaData' => '1',
         ]);
 
