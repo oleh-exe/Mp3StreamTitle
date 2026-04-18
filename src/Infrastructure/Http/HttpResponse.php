@@ -22,7 +22,9 @@ namespace Mp3StreamTitle\Infrastructure\Http;
 final readonly class HttpResponse
 {
     public function __construct(
-        public int $status,
+        public string $protocolVersion,
+        public int $statusCode,
+        public string $reason,
         public array $headers,
         public string $body,
     ) {}
