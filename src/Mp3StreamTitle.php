@@ -23,6 +23,7 @@ use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
 use Mp3StreamTitle\Domain\ValueObject\StreamEndpoint;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClient;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClientConfig;
+use Mp3StreamTitle\Infrastructure\Http\HttpResponseParser;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
 use Mp3StreamTitle\Infrastructure\Http\Request\HeaderCollection;
 use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequestSerializer;
@@ -178,14 +179,14 @@ final class Mp3StreamTitle
            If successful, continue to perform the function. */
         $offset = $this->getOffset($endpoint->getUrl());
 
-        $request = new StreamRequestFactory();
+        $streamRequest = new StreamRequestFactory();
         $headers = new HeaderCollection([
             'User-Agent' => $this->config->userAgent,
             'Host' => $endpoint->getHost(),
             'Icy-MetaData' => '1',
         ]);
 
-        $httpRequest = $request->create($endpoint, $headers);
+        $httpRequest = $streamRequest->create($endpoint, $headers);
 
         $socket = new SocketConnection(
             $endpoint->getHost(),
@@ -195,40 +196,33 @@ final class Mp3StreamTitle
         );
 
         $serializer = new HttpRequestSerializer();
+        $httpRequestString = $serializer->toString($httpRequest);
 
         try {
             $socket->open();
 
             // Send a request to the stream-server
-            $socket->write($serializer->toString($httpRequest));
+            $socket->write($httpRequestString);
 
             // Find out how many bytes of data need to be received.
             $length = $offset + 1 + $this->config->metaMaxLength;
 
             // Save the data part into the variable.
-            $buffer = $socket->read($length);
+            $httpResponse = $socket->read($length);
         } finally {
             $socket->close();
         }
 
-        $pos = strpos($buffer, "\r\n\r\n");
+        $parser = new HttpResponseParser();
+        $response = $parser->parse($httpResponse);
 
-        if ($pos === false) {
-            throw new RuntimeException(
-                'Invalid HTTP response: headers not found'
-            );
-        }
-
-        // Separate the "body" from the headers.
-        $body = substr($buffer, $pos + 4);
-
-        if (strlen($body) <= $offset) {
+        if (strlen($response->body) <= $offset) {
             throw new RuntimeException(
                 'Stream body is shorter than metadata offset'
             );
         }
 
-        if (!isset($body[$offset])) {
+        if (!isset($response->body[$offset])) {
             throw new RuntimeException(
                 'Metadata offset is out of bounds'
             );
@@ -237,16 +231,16 @@ final class Mp3StreamTitle
         $metaStart = $offset + 1;
 
         // Find out the length of metadata.
-        $metaLength = ord($body[$offset]) * 16;
+        $metaLength = ord($response->body[$offset]) * 16;
 
-        if (strlen($body) < $metaStart + $metaLength) {
+        if (strlen($response->body) < $metaStart + $metaLength) {
             throw new RuntimeException(
                 'Incomplete metadata block received from stream'
             );
         }
 
         // Get metadata in the following format "StreamTitle='artist name and song name';".
-        $metadata = substr($body, $metaStart, $metaLength);
+        $metadata = substr($response->body, $metaStart, $metaLength);
 
         // Return the result of the request.
         return $this->getSongInfo($metadata);
