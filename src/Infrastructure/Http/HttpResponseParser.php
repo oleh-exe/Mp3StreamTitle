@@ -59,47 +59,38 @@ final readonly class HttpResponseParser
      */
     private function findHeaderBodySeparator(string $httpResponse): array
     {
-        $result = array();
+        $candidates = [];
 
-        $pos = strpos($httpResponse, "\r\n\r\n");
-        if ($pos !== false) {
-            $length = 4;
+        $patterns = [
+            "\r\n\r\n" => 4,
+            "\n\n" => 2,
+            "\r\n\n" => 3,
+        ];
 
-            $result = [
-                'pos' => $pos,
-                'length' => $length
-            ];
+        foreach ($patterns as $pattern => $length) {
+            $pos = strpos($httpResponse, $pattern);
+
+            if ($pos !== false) {
+                $candidates[] = [
+                    'pos' => $pos,
+                    'length' => $length,
+                ];
+            }
         }
 
-        // Less strict options
-        $pos = strpos($httpResponse, "\n\n");
-        if ($pos !== false) {
-            $length = 2;
-
-            $result = [
-                'pos' => $pos,
-                'length' => $length
-            ];
-        }
-
-        // Mixed cases (rare, but they do happen)
-        $pos = strpos($httpResponse, "\r\n\n");
-        if ($pos !== false) {
-            $length = 3;
-
-            $result = [
-                'pos' => $pos,
-                'length' => $length
-            ];
-        }
-
-        if ($result === []) {
+        if ($candidates === []) {
             throw new RuntimeException(
                 'Could not find the header body separator in the HTTP response'
             );
         }
 
-        return $result;
+        // Finding the earliest separator
+        usort(
+            $candidates,
+            static fn(array $a, array $b): int => $a['pos'] <=> $b['pos']
+        );
+
+        return $candidates[0];
     }
 
     /**
@@ -110,7 +101,6 @@ final readonly class HttpResponseParser
     private function getStatus(array $headers): array
     {
         $statusLine = '';
-        $status = array();
 
         foreach ($headers as $line) {
             $line = trim($line);
@@ -133,22 +123,25 @@ final readonly class HttpResponseParser
                 'Could not find the status line in the HTTP response'
             );
         }
-        // HTTP protocol version <= 1.1
-        if (preg_match('#^HTTP/(\d\.\d)\s+(\d{3})(?:\s+(.*))?$#', $statusLine, $matches)) {
-            $status = [
-                'version' => $matches[1], // 1.1
-                'code' => (int) $matches[2], // 200
-                'reason' => $matches[3] ?? '', // OK
-            ];
-        }
 
-        if ($status === []) {
+        $statusLine = preg_replace('/\s+/', ' ', $statusLine);
+        // HTTP protocol version <= 1.1
+        if (!preg_match(
+            '#^HTTP/(\d\.\d)\s+(\d{3})(?:\s+(.*))?$#',
+            $statusLine,
+            $matches,
+            PREG_UNMATCHED_AS_NULL
+        )) {
             throw new RuntimeException(
                 'Could not parse the status line in the HTTP response'
             );
         }
 
-        return $status;
+        return [
+            'version' => $matches[1], // 1.1
+            'code' => (int) $matches[2], // 200
+            'reason' => $matches[3] ?? '', // OK
+        ];
     }
 
     /**
