@@ -25,6 +25,7 @@ use Mp3StreamTitle\Infrastructure\Http\CurlHttpClient;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClientConfig;
 use Mp3StreamTitle\Infrastructure\Http\HttpResponseParser;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
+use Mp3StreamTitle\Infrastructure\Http\MetadataExtractor;
 use Mp3StreamTitle\Infrastructure\Http\Request\HeaderCollection;
 use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequestSerializer;
 use Mp3StreamTitle\Infrastructure\Http\Request\StreamRequestFactory;
@@ -216,31 +217,8 @@ final class Mp3StreamTitle
         $parser = new HttpResponseParser();
         $response = $parser->parse($httpResponse);
 
-        if (strlen($response->body) <= $offset) {
-            throw new RuntimeException(
-                'Stream body is shorter than metadata offset'
-            );
-        }
-
-        if (!isset($response->body[$offset])) {
-            throw new RuntimeException(
-                'Metadata offset is out of bounds'
-            );
-        }
-
-        $metaStart = $offset + 1;
-
-        // Find out the length of metadata.
-        $metaLength = ord($response->body[$offset]) * 16;
-
-        if (strlen($response->body) < $metaStart + $metaLength) {
-            throw new RuntimeException(
-                'Incomplete metadata block received from stream'
-            );
-        }
-
-        // Get metadata in the following format "StreamTitle='artist name and song name';".
-        $metadata = substr($response->body, $metaStart, $metaLength);
+        $extractor = new MetadataExtractor();
+        $metadata = $extractor->extract($response->body, $offset);
 
         // Return the result of the request.
         return $this->getSongInfo($metadata);
