@@ -19,7 +19,6 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http;
 
-use InvalidArgumentException;
 use RuntimeException;
 
 final readonly class HttpResponseParser
@@ -35,10 +34,10 @@ final readonly class HttpResponseParser
         // Separate the headers from the "body".
         $length = $headerBodySeparator['pos'];
         $rawHeaders = substr($httpResponse, 0, $length);
-        $headers = preg_split('/\r\n|\n|\r/', $rawHeaders);
+        $lines = preg_split('/\r\n|\n|\r/', $rawHeaders) ?: [];
 
-        $status = $this->getStatus($headers);
-        $headers = $this->getHeaders($headers);
+        [$status, $headers] = $this->parseHeaderLines($lines);
+
         // Separate the "body" from the headers.
         $offset = $headerBodySeparator['pos'] + $headerBodySeparator['length'];
         $body = substr($httpResponse, $offset);
@@ -53,14 +52,17 @@ final readonly class HttpResponseParser
     }
 
     /**
+     * Header/body separator (tolerant framing)
+     *
      * @param string $httpResponse
      *
      * @return array
      */
     private function findHeaderBodySeparator(string $httpResponse): array
     {
-        $candidates = [];
-
+        $bestPos = null;
+        $bestLength = null;
+        // Tolerant parser for malformed HTTP-like streams
         $patterns = [
             "\r\n\r\n" => 4,
             "\n\n" => 2,
@@ -70,61 +72,106 @@ final readonly class HttpResponseParser
         foreach ($patterns as $pattern => $length) {
             $pos = strpos($httpResponse, $pattern);
 
-            if ($pos !== false) {
-                $candidates[] = [
-                    'pos' => $pos,
-                    'length' => $length,
-                ];
+            if ($pos === false) {
+                continue;
+            }
+
+            if (
+                ($bestPos === null)
+                || ($pos < $bestPos)
+            ) {
+                $bestPos = $pos;
+                $bestLength = $length;
             }
         }
 
-        if ($candidates === []) {
+        if ($bestPos === null) {
             throw new RuntimeException(
                 'Could not find the header body separator in the HTTP response'
             );
         }
 
-        // Finding the earliest separator
-        usort(
-            $candidates,
-            static fn(array $a, array $b): int => $a['pos'] <=> $b['pos']
-        );
-
-        return $candidates[0];
+        return [
+            'pos' => $bestPos,
+            'length' => $bestLength,
+        ];
     }
 
     /**
-     * @param array $headers
+     * Single-pass parsing: status + headers
      *
-     * @return array
+     * @param array $lines
+     *
+     * @return array{
+     *     0: array{
+     *     version: string,
+     *     code: int,
+     *     reason: string
+     *     },
+     *     1: array<string, string>
+     * }
      */
-    private function getStatus(array $headers): array
+    private function parseHeaderLines(array $lines): array
     {
-        $statusLine = '';
+        $status = null;
+        $headers = array();
 
-        foreach ($headers as $line) {
+        foreach ($lines as $line) {
             $line = trim($line);
 
             if ($line === '') {
                 continue;
             }
-            // Searching for the status line (HTTP/1.1 200 OK)
-            if (!str_starts_with($line, 'HTTP/')) {
+
+            // 1. Status line (find once)
+            if (
+                ($status === null)
+                && str_starts_with($line, 'HTTP/')
+            ) {
+                $status = $this->parseStatusLine($line);
                 continue;
             }
 
-            $statusLine = $line;
+            // 2. Header lines
+            if (!str_contains($line, ':')) {
+                // tolerant mode
+                continue;
+            }
 
-            break;
+            [$name, $value] = explode(':', $line, 2);
+
+            $name = trim($name);
+            $value = trim($value);
+            // --- light filtering (NOT strict validation) ---
+            if ($name === '') {
+                continue;
+            }
+            // --- light filtering (NOT strict validation) ---
+            if (str_contains($value, "\r") || str_contains($value, "\n")) {
+                continue;
+            }
+
+            $normalizedName = $this->normalizeHeaderName($name);
+            // Option: the last value wins
+            $headers[$normalizedName] = $value;
         }
 
-        if ($statusLine === '') {
-            throw new RuntimeException(
-                'Could not find the status line in the HTTP response'
-            );
+        if ($status === null) {
+            throw new RuntimeException('Status line not found');
         }
 
-        $statusLine = preg_replace('/\s+/', ' ', $statusLine);
+        return [$status, $headers];
+    }
+
+    /**
+     * @param string $statusLine
+     *
+     * @return array{version: string, code: int, reason: string}
+     */
+    private function parseStatusLine(string $statusLine): array
+    {
+        $statusLine = preg_replace('/\s+/', ' ', $statusLine) ?? $statusLine;
+
         // HTTP protocol version <= 1.1
         if (!preg_match(
             '#^HTTP/(\d\.\d)\s+(\d{3})(?:\s+(.*))?$#',
@@ -142,64 +189,6 @@ final readonly class HttpResponseParser
             'code' => (int) $matches[2], // 200
             'reason' => $matches[3] ?? '', // OK
         ];
-    }
-
-    /**
-     * @param array $headers
-     *
-     * @return array
-     */
-    private function getHeaders(array $headers): array
-    {
-        $result = array();
-
-        foreach ($headers as $line) {
-            $line = trim($line);
-
-            if ($line === '') {
-                continue;
-            }
-            // Skipping the status line (HTTP/1.1 200 OK)
-            if (str_starts_with($line, 'HTTP/')) {
-                continue;
-            }
-
-            if (!str_contains($line, ':')) {
-                // tolerant mode
-                continue;
-            }
-
-            [$name, $value] = explode(':', $line, 2);
-
-            $name = trim($name);
-            $value = trim($value);
-
-            if ($name === '') {
-                continue;
-            }
-
-            $this->assertValidHeaderName($name);
-            $normalizedName = $this->normalizeHeaderName($name);
-
-            // Option: the last value wins
-            $result[$normalizedName] = $value;
-        }
-
-        return $result;
-    }
-
-    /**
-     * @param string $name
-     *
-     * @return void
-     */
-    private function assertValidHeaderName(string $name): void
-    {
-        if (!preg_match('/^[A-Za-z0-9!#$%&\'*+\-.^_`|~]+$/', $name)) {
-            throw new InvalidArgumentException(
-                sprintf('Invalid header name "%s"', $name)
-            );
-        }
     }
 
     /**
