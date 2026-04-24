@@ -176,8 +176,7 @@ final class Mp3StreamTitle
     {
         $endpoint = StreamEndpoint::fromString($streamingUrl);
 
-        /* Find out from which byte the metadata will begin.
-           If successful, continue to perform the function. */
+        // Find out from which byte the metadata will begin
         $offset = $this->getOffset($endpoint->getUrl());
 
         $streamRequest = new StreamRequestFactory();
@@ -236,55 +235,38 @@ final class Mp3StreamTitle
     private function sendFGC(string $streamingUrl): string|int
     {
         $endpoint = StreamEndpoint::fromString($streamingUrl);
+        // Find out from which byte the metadata will begin
+        $offset = $this->getOffset($endpoint->getUrl());
+        // HTTP-request headers.
+        $optionsMethod = "GET";
+        $optionsHeader = "User-Agent: " . $this->config->userAgent . "\r\n";
+        $optionsHeader .= "Icy-MetaData: 1\r\n\r\n";
 
-        /* Find out from which byte the metadata will begin.
-           If successful, continue to perform the function. */
-        if ($offset = $this->getOffset($endpoint->getUrl())) {
-            // HTTP-request headers.
-            $optionsMethod = "GET";
-            $optionsHeader = "User-Agent: " . $this->config->userAgent . "\r\n";
-            $optionsHeader .= "Icy-MetaData: 1\r\n\r\n";
+        $options = [
+            'http' => [
+                'method' => $optionsMethod,
+                'header' => $optionsHeader,
+                'timeout' => 30
+            ]
+        ];
+        // Create a thread context.
+        $context = stream_context_create($options);
+        // Find out how many bytes of data need to be received.
+        $dataByte = $offset + 1 + $this->config->metaMaxLength;
+        // Open the stream using the HTTP-headers set above.
+        $buffer = file_get_contents($endpoint->getUrl(), false, $context, 0, $dataByte);
 
-            $options = [
-                'http' => [
-                    'method' => $optionsMethod,
-                    'header' => $optionsHeader,
-                    'timeout' => 30
-                ]
-            ];
-
-            // Create a thread context.
-            $context = stream_context_create($options);
-
-            // Find out how many bytes of data need to be received.
-            //$dataByte = $offset + $this->config->metaMaxLength;
-            $dataByte = $offset + 1 + $this->config->metaMaxLength;
-
-            // Open the stream using the HTTP-headers set above.
-            if ($buffer = file_get_contents($endpoint->getUrl(), false, $context, 0, $dataByte)) {
-                // Find out length of metadata.
-                $metaLength = ord(substr($buffer, $offset, 1)) * 16;
-
-                // Get metadata in the following format "StreamTitle='artist name and song name';".
-                $metadata = substr($buffer, $offset, $metaLength);
-
-                // Return the execution result of the function.
-                $result = $this->getSongInfo($metadata);
-                // If error messages display disabled.
-            } elseif ($this->config->showErrors == 0) {
-                $result = 0;
-                // If enabled.
-            } else {
-                $result = 'Failed to get server response.';
-            }
-            // If error messages display disabled.
-        } elseif ($this->config->showErrors == 0) {
-            $result = 0;
-            // If enabled.
-        } else {
-            $result = 'Failed to get headers from server response to HTTP-request or "icy-metaint" header value.';
+        if ($buffer === false) {
+            throw new RuntimeException(
+                'Failed to get server response'
+            );
         }
-        return $result;
+        // Find out length of metadata.
+        $metaLength = ord(substr($buffer, $offset, 1)) * 16;
+        // Get metadata in the following format "StreamTitle='artist name and song name';".
+        $metadata = substr($buffer, $offset, $metaLength);
+
+        return $this->getSongInfo($metadata);
     }
 
     /**
