@@ -19,6 +19,7 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http\Request;
 
+use InvalidArgumentException;
 use Mp3StreamTitle\Domain\ValueObject\StreamEndpoint;
 use Mp3StreamTitle\Infrastructure\Http\Enum\HttpMethod;
 use Mp3StreamTitle\Infrastructure\Http\Enum\HttpVersion;
@@ -33,6 +34,23 @@ final class StreamRequestFactory
      */
     public function create(StreamEndpoint $endpoint, HeaderCollection $headers): HttpRequest
     {
+        if ($headers->has('Host')) {
+            throw new InvalidArgumentException(
+                'Host header must not be provided'
+            );
+        }
+
+        $host = $endpoint->getHost();
+        $port = $endpoint->getPort();
+
+        if ($port !== 80 && $port !== 443) {
+            $host .= ':' . $port;
+        }
+        // immutable chain
+        $headers = $headers
+            ->with('Host', $host)
+            ->with('Icy-MetaData', '1'); // forcedly
+
         return new HttpRequest(
             method: HttpMethod::GET,
             target: $endpoint->getRequestTarget(),
