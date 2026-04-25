@@ -23,13 +23,12 @@ use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
 use Mp3StreamTitle\Domain\ValueObject\StreamEndpoint;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClient;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClientConfig;
-use Mp3StreamTitle\Infrastructure\Http\HttpResponseParser;
+use Mp3StreamTitle\Infrastructure\Http\HttpClient;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
 use Mp3StreamTitle\Infrastructure\Http\MetadataExtractor;
+use Mp3StreamTitle\Infrastructure\Http\OffsetResolver;
 use Mp3StreamTitle\Infrastructure\Http\Request\HeaderCollection;
-use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequestSerializer;
 use Mp3StreamTitle\Infrastructure\Http\Request\StreamRequestFactory;
-use Mp3StreamTitle\Infrastructure\Http\SocketConnection;
 use RuntimeException;
 use Throwable;
 
@@ -123,9 +122,9 @@ final class Mp3StreamTitle
 
         $endpoint = StreamEndpoint::fromString($streamingUrl);
 
-        /* Find out from which byte the metadata will begin.
-           If successful, continue to perform the function. */
-        $offset = $this->getOffset($endpoint->getUrl());
+        $offsetResolver = new OffsetResolver();
+        // Find out from which byte the metadata will begin
+        $offset = $offsetResolver->resolve($endpoint->getUrl(), $this->config);
 
         $parser = new IcyMetadataStreamParser(
             $offset,
@@ -162,7 +161,7 @@ final class Mp3StreamTitle
 
     /**
      * The socket-function takes as an argument a direct link to the stream
-     * of the online radio station and sends an HTTP-request to the stream
+     * of the online radio station and sends an HTTP request to the stream
      * server. As a result, the function returns information about the song
      * in the following format "artist name and song name".
      *
@@ -176,9 +175,6 @@ final class Mp3StreamTitle
     {
         $endpoint = StreamEndpoint::fromString($streamingUrl);
 
-        // Find out from which byte the metadata will begin
-        $offset = $this->getOffset($endpoint->getUrl());
-
         $streamRequest = new StreamRequestFactory();
         $headerCollection = new HeaderCollection([
             'User-Agent' => $this->config->userAgent
@@ -186,33 +182,12 @@ final class Mp3StreamTitle
 
         $httpRequest = $streamRequest->create($endpoint, $headerCollection);
 
-        $socket = new SocketConnection(
-            $endpoint->getHost(),
-            $endpoint->getPort(),
-            $endpoint->getTransport(),
-            30,
-        );
+        $offsetResolver = new OffsetResolver();
+        // Find out from which byte the metadata will begin
+        $offset = $offsetResolver->resolve($endpoint->getUrl(), $this->config);
 
-        $serializer = new HttpRequestSerializer();
-        $httpRequestString = $serializer->toString($httpRequest);
-
-        try {
-            $socket->open();
-
-            // Send a request to the stream-server
-            $socket->write($httpRequestString);
-
-            // Find out how many bytes of data need to be received.
-            $length = $offset + 1 + $this->config->metaMaxLength;
-
-            // Save the data part into the variable.
-            $httpResponse = $socket->read($length);
-        } finally {
-            $socket->close();
-        }
-
-        $parser = new HttpResponseParser();
-        $response = $parser->parse($httpResponse);
+        $httpClient = new HttpClient();
+        $response = $httpClient->send($endpoint, $httpRequest, $offset, $this->config);
 
         $extractor = new MetadataExtractor();
         $metadata = $extractor->extract($response->body, $offset);
@@ -233,8 +208,11 @@ final class Mp3StreamTitle
     private function sendFGC(string $streamingUrl): string|int
     {
         $endpoint = StreamEndpoint::fromString($streamingUrl);
+
+        $offsetResolver = new OffsetResolver();
         // Find out from which byte the metadata will begin
-        $offset = $this->getOffset($endpoint->getUrl());
+        $offset = $offsetResolver->resolve($endpoint->getUrl(), $this->config);
+
         // HTTP-request headers.
         $optionsMethod = "GET";
         $optionsHeader = "User-Agent: " . $this->config->userAgent . "\r\n";
@@ -251,7 +229,7 @@ final class Mp3StreamTitle
         $context = stream_context_create($options);
         // Find out how many bytes of data need to be received.
         $dataByte = $offset + 1 + $this->config->metaMaxLength;
-        // Open the stream using the HTTP-headers set above.
+        // Open the stream using the HTTP headers set above.
         $buffer = file_get_contents($endpoint->getUrl(), false, $context, 0, $dataByte);
 
         if ($buffer === false) {
@@ -289,65 +267,6 @@ final class Mp3StreamTitle
                 'Failed to get song info'
             );
         }
-        return $result;
-    }
-
-    /**
-     * The function takes as an argument a direct link to the stream of the
-     * online radio station and sends an HTTP request to the stream
-     * server. In the server response headers, the function looks for the
-     * "icy-metaint" header and returns its value.
-     *
-     * @param string $streamingUrl
-     *
-     * @return int
-     */
-    private function getOffset(string $streamingUrl): int
-    {
-        // HTTP-request headers.
-        $optionsMethod = "GET";
-        $optionsHeader = "User-Agent: " . $this->config->userAgent . "\r\n";
-        $optionsHeader .= "Icy-MetaData: 1\r\n\r\n";
-
-        $options = [
-            'http' => [
-                'method' => $optionsMethod,
-                'header' => $optionsHeader,
-                'timeout' => 30
-            ]
-        ];
-
-        // Create a thread context.
-        $context = stream_context_create($options);
-
-        // Get the headers from the server response to the HTTP request.
-        $headers = get_headers($streamingUrl, true, $context);
-
-        if ($headers === false) {
-            throw new RuntimeException(
-                'Failed to get headers from server response to HTTP-request'
-            );
-        }
-
-        if (!isset($headers['icy-metaint'])) {
-            throw new RuntimeException(
-                'Failed to get headers from server response to HTTP-request or "icy-metaint" header value'
-            );
-        }
-
-        // Looking for the header "icy-metaint".
-        $value = $headers['icy-metaint'];
-        /* Find out how many bytes of data from the stream you need to read before
-           the metadata begins (which contains the name of the artist and the name of the song). */
-        $result = is_array($value) ? end($value) : $value;
-        $result = intval($result);
-
-        if ($result <= 0) {
-            throw new RuntimeException(
-                'Invalid "icy-metaint" header value'
-            );
-        }
-
         return $result;
     }
 }
