@@ -180,13 +180,11 @@ final class Mp3StreamTitle
         $offset = $this->getOffset($endpoint->getUrl());
 
         $streamRequest = new StreamRequestFactory();
-        $headers = new HeaderCollection([
-            'User-Agent' => $this->config->userAgent,
-            'Host' => $endpoint->getHost(),
-            'Icy-MetaData' => '1',
+        $headerCollection = new HeaderCollection([
+            'User-Agent' => $this->config->userAgent
         ]);
 
-        $httpRequest = $streamRequest->create($endpoint, $headers);
+        $httpRequest = $streamRequest->create($endpoint, $headerCollection);
 
         $socket = new SocketConnection(
             $endpoint->getHost(),
