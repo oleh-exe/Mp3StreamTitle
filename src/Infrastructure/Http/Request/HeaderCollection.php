@@ -42,6 +42,50 @@ final readonly class HeaderCollection
     }
 
     /**
+     * @param string $name
+     * @return bool
+     */
+    public function has(string $name): bool
+    {
+        return array_key_exists($this->normalizeHeaderName($name), $this->headers);
+    }
+
+    /**
+     * @param string $name
+     * @return string
+     */
+    public function get(string $name): string
+    {
+        $normalized = $this->normalizeHeaderName($name);
+
+        if (!isset($this->headers[$normalized])) {
+            throw new InvalidArgumentException(
+                sprintf('Header "%s" not found', $name)
+            );
+        }
+
+        return $this->headers[$normalized];
+    }
+
+    /**
+     * @param string $name
+     * @param string $value
+     * @return self
+     */
+    public function with(string $name, string $value): self
+    {
+        $this->assertValidHeaderName($name);
+        $this->assertValidHeaderValue($value);
+
+        $normalized = $this->normalizeHeaderName($name);
+
+        $new = $this->headers;
+        $new[$normalized] = $value;
+
+        return new self($new);
+    }
+
+    /**
      * @param array $headers
      * @return array
      */
