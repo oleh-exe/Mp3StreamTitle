@@ -19,7 +19,7 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http\Request;
 
-use InvalidArgumentException;
+use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
 use Mp3StreamTitle\Domain\ValueObject\StreamEndpoint;
 use Mp3StreamTitle\Infrastructure\Http\Enum\HttpMethod;
 use Mp3StreamTitle\Infrastructure\Http\Enum\HttpVersion;
@@ -28,17 +28,14 @@ final class StreamRequestFactory
 {
     /**
      * @param StreamEndpoint $endpoint
-     * @param HeaderCollection $headers
-     *
+     * @param Mp3StreamTitleConfig $config
      * @return HttpRequest
      */
-    public function create(StreamEndpoint $endpoint, HeaderCollection $headers): HttpRequest
+    public function create(StreamEndpoint $endpoint, Mp3StreamTitleConfig $config): HttpRequest
     {
-        if ($headers->has('Host')) {
-            throw new InvalidArgumentException(
-                'Host header must not be provided'
-            );
-        }
+        $headers = new HeaderCollection([
+            'User-Agent' => $config->userAgent
+        ]);
 
         $host = $endpoint->getHost();
         $port = $endpoint->getPort();
