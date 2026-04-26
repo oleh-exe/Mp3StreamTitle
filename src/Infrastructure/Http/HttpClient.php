@@ -19,48 +19,45 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http;
 
-use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
-use Mp3StreamTitle\Domain\ValueObject\StreamEndpoint;
 use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequest;
 use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequestSerializer;
 use Throwable;
 
 final class HttpClient
 {
+    private SocketConnection $socket;
+
+    public function __construct(SocketConnection $socket)
+    {
+        $this->socket = $socket;
+    }
+
     /**
-     * @param StreamEndpoint $endpoint
-     * @param HttpRequest $httpRequest
-     * @param int $offset
-     * @param Mp3StreamTitleConfig $config
-     * @return HttpResponse
      * @throws Throwable
      */
-    public function send(StreamEndpoint $endpoint, HttpRequest $httpRequest, int $offset, Mp3StreamTitleConfig $config): HttpResponse
+    public function send(HttpRequest $httpRequest): array
     {
-        $socket = new SocketConnection(
-            $endpoint->getHost(),
-            $endpoint->getPort(),
-            $endpoint->getTransport(),
-            30,
-        );
+        $findHeaders = true;
+        $buffer = '';
+        $result = [];
+
+        $this->socket->open();
 
         $serializer = new HttpRequestSerializer();
         $httpRequestString = $serializer->toString($httpRequest);
 
-        // Find out how many bytes of data need to be received.
-        $length = $offset + 1 + $config->metaMaxLength;
+        $this->socket->write($httpRequestString);
 
-        try {
-            $socket->open();
-            // Send a request to the stream-server
-            $socket->write($httpRequestString);
-            // Save the data part into the variable.
-            $httpResponse = $socket->read($length);
-        } finally {
-            $socket->close();
+        while ($findHeaders) {
+            $buffer .= $this->socket->read();
+
+            if (str_contains($buffer, "\r\n\r\n")) {
+                $result['headers'] = substr($buffer, 0, strpos($buffer, "\r\n\r\n") + 4);
+                $result['body'] = substr($buffer, strpos($buffer, "\r\n\r\n") + 4);
+                $findHeaders = false;
+            }
         }
 
-        $parser = new HttpResponseParser();
-        return $parser->parse($httpResponse);
+        return $result;
     }
 }
