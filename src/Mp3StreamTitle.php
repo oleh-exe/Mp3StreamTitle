@@ -29,6 +29,7 @@ use Mp3StreamTitle\Infrastructure\Http\MetadataExtractor;
 use Mp3StreamTitle\Infrastructure\Http\OffsetResolver;
 use Mp3StreamTitle\Infrastructure\Http\Request\HeaderCollection;
 use Mp3StreamTitle\Infrastructure\Http\Request\StreamRequestFactory;
+use Mp3StreamTitle\Infrastructure\Http\StreamReader;
 use RuntimeException;
 use Throwable;
 
@@ -175,19 +176,26 @@ final class Mp3StreamTitle
     {
         $endpoint = StreamEndpoint::fromString($streamingUrl);
 
-        $streamRequest = new StreamRequestFactory();
-        $headerCollection = new HeaderCollection([
-            'User-Agent' => $this->config->userAgent
-        ]);
-
-        $httpRequest = $streamRequest->create($endpoint, $headerCollection);
-
         $offsetResolver = new OffsetResolver();
         // Find out from which byte the metadata will begin
         $offset = $offsetResolver->resolve($endpoint->getUrl(), $this->config);
 
-        $httpClient = new HttpClient();
-        $response = $httpClient->send($endpoint, $httpRequest, $offset, $this->config);
+        $streamRequest = new StreamRequestFactory();
+        /*
+        $headerCollection = new HeaderCollection([
+            'User-Agent' => $this->config->userAgent
+        ]);
+        */
+
+        $httpRequest = $streamRequest->create($endpoint, $this->config);
+
+        //$httpClient = new HttpClient();
+        //$response = $httpClient->send($endpoint, $httpRequest);
+        $streamReader = new StreamReader();
+
+        // Find out how many bytes of data need to be received.
+        //$length = $offset + 1 + $this->config->metaMaxLength;
+        $response = $streamReader->read($endpoint, $httpRequest, $offset);
 
         $extractor = new MetadataExtractor();
         $metadata = $extractor->extract($response->body, $offset);
