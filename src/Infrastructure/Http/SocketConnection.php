@@ -162,65 +162,48 @@ final class SocketConnection
     }
 
     /**
-     * @param int $length
-     *
      * @return string
      * @throws Throwable
      */
-    public function read(int $length): string
+    public function read(): string
     {
         $this->assertConnected();
 
         $this->state = ConnectionState::READING;
 
         try {
-            if ($length <= 0) {
-                throw new InvalidArgumentException(
-                    'Length must be greater than 0'
+            $length = 8192;
+            $chunk = fread($this->fp, $length);
+
+            if ($chunk === false) {
+                throw new SocketConnectionException(
+                    'Socket read failed'
                 );
             }
 
-            $remaining = $length;
-            $buffer = '';
+            if ($chunk === '') {
+                $meta = stream_get_meta_data($this->fp);
 
-            while ($remaining > 0) {
-                $chunk = fread($this->fp, $remaining);
-
-                if ($chunk === false) {
+                if ($meta['timed_out']) {
                     throw new SocketConnectionException(
-                        'Socket read failed'
+                        'Read timeout'
                     );
                 }
 
-                if ($chunk === '') {
-                    $meta = stream_get_meta_data($this->fp);
-
-                    if ($meta['timed_out']) {
-                        throw new SocketConnectionException(
-                            'Read timeout'
-                        );
-                    }
-
-                    if ($meta['eof']) {
-                        throw new SocketConnectionException(
-                            'Unexpected EOF'
-                        );
-                    }
-
+                if ($meta['eof']) {
                     throw new SocketConnectionException(
-                        'Empty read without EOF or timeout'
+                        'Unexpected EOF'
                     );
                 }
 
-                $chunkLength = strlen($chunk);
-
-                $buffer .= $chunk;
-                $remaining -= $chunkLength;
+                throw new SocketConnectionException(
+                    'Empty read without EOF or timeout'
+                );
             }
 
             $this->state = ConnectionState::CONNECTED;
 
-            return $buffer;
+            return $chunk;
         } catch (Throwable $e) {
             $this->fail($e);
         }
