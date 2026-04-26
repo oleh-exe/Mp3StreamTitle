@@ -29,7 +29,7 @@ final class StreamReader
     /**
      * @throws Throwable
      */
-    public function read(StreamEndpoint $endpoint, HttpRequest $httpRequest, OffsetResolver $offset): HttpResponse
+    public function read(StreamEndpoint $endpoint, HttpRequest $httpRequest, int $offset): HttpResponse
     {
         /*if ($length <= 0) {
             throw new InvalidArgumentException(
@@ -48,11 +48,19 @@ final class StreamReader
 
         try {
             $response = $httpClient->send($httpRequest);
+            $body = $response['body'];
+            $alreadyRead = strlen($body);
+
+            if ($alreadyRead <= $offset) {
+                while (strlen($body) <= $offset) {
+                    $body .= $socket->read();
+                }
+            }
         } finally {
             $socket->close();
         }
 
         $parser = new HttpResponseParser();
-        return $parser->parse($response);
+        return $parser->parse($response['headers'] . $body);
     }
 }
