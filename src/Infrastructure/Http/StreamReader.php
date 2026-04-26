@@ -29,13 +29,13 @@ final class StreamReader
     /**
      * @throws Throwable
      */
-    public function read(StreamEndpoint $endpoint, HttpRequest $httpRequest, $length): HttpResponse
+    public function read(StreamEndpoint $endpoint, HttpRequest $httpRequest, OffsetResolver $offset): HttpResponse
     {
-        if ($length <= 0) {
+        /*if ($length <= 0) {
             throw new InvalidArgumentException(
                 'Length must be greater than 0'
             );
-        }
+        }*/
 
         $socket = new SocketConnection(
             $endpoint->getHost(),
@@ -47,11 +47,12 @@ final class StreamReader
         $httpClient = new HttpClient($socket);
 
         try {
-            $HttpResponse = $httpClient->send($httpRequest);
+            $response = $httpClient->send($httpRequest);
         } finally {
             $socket->close();
         }
 
-        return $HttpResponse;
+        $parser = new HttpResponseParser();
+        return $parser->parse($response);
     }
 }
