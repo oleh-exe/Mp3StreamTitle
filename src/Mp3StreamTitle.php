@@ -195,10 +195,10 @@ final class Mp3StreamTitle
 
         // Find out how many bytes of data need to be received.
         //$length = $offset + 1 + $this->config->metaMaxLength;
-        $response = $streamReader->read($endpoint, $httpRequest, $offset);
+        $metadataBlock = $streamReader->read($endpoint, $httpRequest, $offset, $this->config);
 
         $extractor = new MetadataExtractor();
-        $metadata = $extractor->extract($response->body, $offset);
+        $metadata = $extractor->extract($metadataBlock);
 
         // Return the result of the request.
         return $this->getSongInfo($metadata);
