@@ -25,47 +25,11 @@ final class MetadataExtractor
 {
     /**
      * @param string $body
-     * @param int $offset
      *
      * @return string
      */
-    public function extract(string $body, int $offset): string
+    public function extract(string $metadataBlock): string
     {
-        if (strlen($body) <= $offset) {
-            throw new RuntimeException(
-                'Stream body is shorter than metadata offset'
-            );
-        }
-
-        if (!isset($body[$offset])) {
-            throw new RuntimeException(
-                'Metadata offset is out of bounds'
-            );
-        }
-
-        // ICY metadata block structure:
-        // [offset]      = length byte (metadata length / 16)
-        // [offset + 1]  = start of actual metadata (e.g. StreamTitle='...';)
-        $metaStart = $offset + 1;
-
-        // Find out the length of metadata.
-        $metaLength = ord($body[$offset]) * 16;
-
-        if ($metaLength === 0) {
-            return '';
-        }
-
-        if (strlen($body) < ($metaStart + $metaLength)) {
-            throw new RuntimeException(
-                'Incomplete metadata block received from stream'
-            );
-        }
-
-        // Get metadata in the following format "StreamTitle='artist name and song name';".
-        return substr(
-            $body,
-            $metaStart,
-            $metaLength
-        );
+        return $metadataBlock;
     }
 }
