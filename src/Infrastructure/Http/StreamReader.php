@@ -19,9 +19,10 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http;
 
-use InvalidArgumentException;
+use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
 use Mp3StreamTitle\Domain\ValueObject\StreamEndpoint;
 use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequest;
+use RuntimeException;
 use Throwable;
 
 final class StreamReader
@@ -29,14 +30,12 @@ final class StreamReader
     /**
      * @throws Throwable
      */
-    public function read(StreamEndpoint $endpoint, HttpRequest $httpRequest, int $offset): HttpResponse
-    {
-        /*if ($length <= 0) {
-            throw new InvalidArgumentException(
-                'Length must be greater than 0'
-            );
-        }*/
-
+    public function read(
+        StreamEndpoint $endpoint,
+        HttpRequest $httpRequest,
+        int $offset,
+        Mp3StreamTitleConfig $config
+    ): string {
         $socket = new SocketConnection(
             $endpoint->getHost(),
             $endpoint->getPort(),
@@ -47,20 +46,63 @@ final class StreamReader
         $httpClient = new HttpClient($socket);
 
         try {
-            $response = $httpClient->send($httpRequest);
-            $body = $response['body'];
-            $alreadyRead = strlen($body);
+            $httpResponseParts = $httpClient->send($httpRequest);
 
-            if ($alreadyRead <= $offset) {
-                while (strlen($body) <= $offset) {
-                    $body .= $socket->read();
-                }
+            $body = $httpResponseParts->body;
+            $safetyMargin = 1024;
+            $maxAllowed = $offset + 1 + $config->metaMaxLength + $safetyMargin;
+
+            if (strlen($body) < $offset) {
+                $length = $offset + 1;
+                $this->readUntilLength($body, $length, $socket, $maxAllowed);
+            }
+
+            if (!isset($body[$offset])) {
+                throw new RuntimeException(
+                    'Metadata offset is out of bounds'
+                );
+            }
+            // ICY metadata block structure:
+            // [offset]      = length byte (metadata length / 16)
+            // [offset + 1]  = start of actual metadata (e.g., StreamTitle='...';)
+            $metaStart = $offset + 1;
+            // Find out the length of metadata.
+            $metaLength = ord($body[$offset]) * 16;
+
+            if ($metaLength === 0) {
+                return '';
+            }
+
+            $length = $metaStart + $metaLength;
+
+            if (strlen($body) < $length) {
+                $this->readUntilLength($body, $length, $socket, $maxAllowed);
             }
         } finally {
             $socket->close();
         }
 
-        $parser = new HttpResponseParser();
-        return $parser->parse($response['headers'] . $body);
+        // Get metadata in the following format "StreamTitle='artist name and song name';".
+        return substr(
+            $body,
+            $metaStart,
+            $metaLength
+        );
+    }
+
+    /**
+     * @throws Throwable
+     */
+    private function readUntilLength(string &$body, int $length, SocketConnection $socket, int $maxAllowed): void
+    {
+        while (strlen($body) < $length) {
+            $body .= $socket->read();
+
+            if (strlen($body) > $maxAllowed) {
+                throw new RuntimeException(
+                    sprintf('Stream body exceeded maximum allowed length (%d bytes)', $maxAllowed)
+                );
+            }
+        }
     }
 }
