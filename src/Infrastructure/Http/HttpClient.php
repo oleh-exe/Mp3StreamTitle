@@ -19,6 +19,8 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http;
 
+use Mp3StreamTitle\Infrastructure\Http\Request\HeaderCollection;
+use RuntimeException;
 use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequest;
 use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequestSerializer;
 use Throwable;
@@ -35,11 +37,13 @@ final class HttpClient
     /**
      * @throws Throwable
      */
-    public function send(HttpRequest $httpRequest): array
+    public function send(HttpRequest $httpRequest): HttpResponseParts
     {
         $findHeaders = true;
         $buffer = '';
-        $result = [];
+        $maxHeadersSize = 16384;
+        $headersRaw = '';
+        $bodyBuffer = '';
 
         $this->socket->open();
 
@@ -51,13 +55,26 @@ final class HttpClient
         while ($findHeaders) {
             $buffer .= $this->socket->read();
 
-            if (str_contains($buffer, "\r\n\r\n")) {
-                $result['headers'] = substr($buffer, 0, strpos($buffer, "\r\n\r\n") + 4);
-                $result['body'] = substr($buffer, strpos($buffer, "\r\n\r\n") + 4);
+            if (strlen($buffer) > $maxHeadersSize) {
+                throw new RuntimeException(
+                    sprintf('HTTP headers exceeded maximum allowed size (%d bytes)', $maxHeadersSize)
+                );
+            }
+
+            $pos = strpos($buffer, "\r\n\r\n");
+            if ($pos !== false) {
+                $headersRaw = substr($buffer, 0, $pos + 4);
+                $bodyBuffer = substr($buffer, $pos + 4);
                 $findHeaders = false;
             }
         }
 
-        return $result;
+        $parser = new HttpResponseParser();
+        $headers = new HeaderCollection($parser->parse($headersRaw)->headers);
+
+        return new HttpResponseParts(
+            headers: $headers,
+            body: $bodyBuffer
+        );
     }
 }
