@@ -78,16 +78,16 @@ final class StreamReader
             if (strlen($body) < $length) {
                 $this->readUntilLength($body, $length, $socket, $maxAllowed);
             }
+
+            // Get metadata in the following format "StreamTitle='artist name and song name';".
+            return substr(
+                $body,
+                $metaStart,
+                $metaLength
+            );
         } finally {
             $socket->close();
         }
-
-        // Get metadata in the following format "StreamTitle='artist name and song name';".
-        return substr(
-            $body,
-            $metaStart,
-            $metaLength
-        );
     }
 
     /**
