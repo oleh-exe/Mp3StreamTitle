@@ -23,11 +23,9 @@ use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
 use Mp3StreamTitle\Domain\ValueObject\StreamEndpoint;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClient;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClientConfig;
-use Mp3StreamTitle\Infrastructure\Http\HttpClient;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
 use Mp3StreamTitle\Infrastructure\Http\MetadataExtractor;
 use Mp3StreamTitle\Infrastructure\Http\OffsetResolver;
-use Mp3StreamTitle\Infrastructure\Http\Request\HeaderCollection;
 use Mp3StreamTitle\Infrastructure\Http\Request\StreamRequestFactory;
 use Mp3StreamTitle\Infrastructure\Http\StreamReader;
 use RuntimeException;
@@ -184,7 +182,6 @@ final class Mp3StreamTitle
         $httpRequest = $streamRequest->create($endpoint, $this->config);
 
         $streamReader = new StreamReader();
-
         $metadataBlock = $streamReader->read($endpoint, $httpRequest, $offset, $this->config);
 
         $extractor = new MetadataExtractor();
