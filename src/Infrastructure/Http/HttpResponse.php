@@ -19,13 +19,15 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http;
 
+use Mp3StreamTitle\Infrastructure\Http\Request\HeaderCollection;
+
 final readonly class HttpResponse
 {
     public function __construct(
         public string $protocolVersion,
         public int $statusCode,
         public string $reason,
-        public array $headers,
+        public HeaderCollection $headers,
         public string $body,
     ) {}
 }
