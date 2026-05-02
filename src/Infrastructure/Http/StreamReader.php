@@ -43,21 +43,22 @@ final class StreamReader
             30,
         );
 
-        $httpClient = new HttpClient($socket);
-
         try {
+            $socket->open();
+
+            $httpClient = new HttpClient($socket);
             $httpResponseParts = $httpClient->send($httpRequest);
 
-            $body = $httpResponseParts->body;
+            $bodyBuffer = $httpResponseParts->body;
             $safetyMargin = 1024;
             $maxAllowed = $offset + 1 + $config->metaMaxLength + $safetyMargin;
 
-            if (strlen($body) < $offset) {
+            if (strlen($bodyBuffer) < $offset) {
                 $length = $offset + 1;
-                $this->readUntilLength($body, $length, $socket, $maxAllowed);
+                $this->readUntilLength($bodyBuffer, $length, $socket, $maxAllowed);
             }
 
-            if (!isset($body[$offset])) {
+            if (!isset($bodyBuffer[$offset])) {
                 throw new RuntimeException(
                     'Metadata offset is out of bounds'
                 );
@@ -67,7 +68,7 @@ final class StreamReader
             // [offset + 1]  = start of actual metadata (e.g., StreamTitle='...';)
             $metaStart = $offset + 1;
             // Find out the length of metadata.
-            $metaLength = ord($body[$offset]) * 16;
+            $metaLength = ord($bodyBuffer[$offset]) * 16;
 
             if ($metaLength === 0) {
                 return '';
@@ -75,13 +76,13 @@ final class StreamReader
 
             $length = $metaStart + $metaLength;
 
-            if (strlen($body) < $length) {
-                $this->readUntilLength($body, $length, $socket, $maxAllowed);
+            if (strlen($bodyBuffer) < $length) {
+                $this->readUntilLength($bodyBuffer, $length, $socket, $maxAllowed);
             }
 
             // Get metadata in the following format "StreamTitle='artist name and song name';".
             return substr(
-                $body,
+                $bodyBuffer,
                 $metaStart,
                 $metaLength
             );
@@ -93,12 +94,12 @@ final class StreamReader
     /**
      * @throws Throwable
      */
-    private function readUntilLength(string &$body, int $length, SocketConnection $socket, int $maxAllowed): void
+    private function readUntilLength(string &$bodyBuffer, int $length, SocketConnection $socket, int $maxAllowed): void
     {
-        while (strlen($body) < $length) {
-            $body .= $socket->read();
+        while (strlen($bodyBuffer) < $length) {
+            $bodyBuffer .= $socket->read();
 
-            if (strlen($body) > $maxAllowed) {
+            if (strlen($bodyBuffer) > $maxAllowed) {
                 throw new RuntimeException(
                     sprintf('Stream body exceeded maximum allowed length (%d bytes)', $maxAllowed)
                 );
