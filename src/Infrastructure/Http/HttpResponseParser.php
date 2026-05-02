@@ -19,6 +19,7 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http;
 
+use Mp3StreamTitle\Infrastructure\Http\Request\HeaderCollection;
 use RuntimeException;
 
 final readonly class HttpResponseParser
@@ -37,6 +38,7 @@ final readonly class HttpResponseParser
         $lines = preg_split('/\r\n|\n|\r/', $rawHeaders) ?: [];
 
         [$status, $headers] = $this->parseHeaderLines($lines);
+        $headers = new HeaderCollection($headers);
 
         // Separate the "body" from the headers.
         $offset = $headerBodySeparator['pos'] + $headerBodySeparator['length'];
