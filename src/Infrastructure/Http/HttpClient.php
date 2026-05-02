@@ -19,7 +19,6 @@ declare(strict_types=1);
 
 namespace Mp3StreamTitle\Infrastructure\Http;
 
-use Mp3StreamTitle\Infrastructure\Http\Request\HeaderCollection;
 use RuntimeException;
 use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequest;
 use Mp3StreamTitle\Infrastructure\Http\Request\HttpRequestSerializer;
@@ -44,8 +43,6 @@ final class HttpClient
         $maxHeadersSize = 16384;
         $headersRaw = '';
         $bodyBuffer = '';
-
-        $this->socket->open();
 
         $serializer = new HttpRequestSerializer();
         $httpRequestString = $serializer->toString($httpRequest);
