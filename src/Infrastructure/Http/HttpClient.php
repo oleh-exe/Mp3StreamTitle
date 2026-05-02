@@ -70,10 +70,9 @@ final class HttpClient
         }
 
         $parser = new HttpResponseParser();
-        $headers = new HeaderCollection($parser->parse($headersRaw)->headers);
 
         return new HttpResponseParts(
-            headers: $headers,
+            headers: $parser->parse($headersRaw)->headers,
             body: $bodyBuffer
         );
     }
