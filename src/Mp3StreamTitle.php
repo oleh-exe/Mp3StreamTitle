@@ -181,20 +181,10 @@ final class Mp3StreamTitle
         $offset = $offsetResolver->resolve($endpoint->getUrl(), $this->config);
 
         $streamRequest = new StreamRequestFactory();
-        /*
-        $headerCollection = new HeaderCollection([
-            'User-Agent' => $this->config->userAgent
-        ]);
-        */
-
         $httpRequest = $streamRequest->create($endpoint, $this->config);
 
-        //$httpClient = new HttpClient();
-        //$response = $httpClient->send($endpoint, $httpRequest);
         $streamReader = new StreamReader();
 
-        // Find out how many bytes of data need to be received.
-        //$length = $offset + 1 + $this->config->metaMaxLength;
         $metadataBlock = $streamReader->read($endpoint, $httpRequest, $offset, $this->config);
 
         $extractor = new MetadataExtractor();
