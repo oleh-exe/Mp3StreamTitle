@@ -33,17 +33,12 @@ final class HttpClient
         $this->socket = $socket;
     }
 
-    /**
-     * @throws Throwable
-     */
-    public function send(HttpRequest $httpRequest): HttpResponseParts
+    /** * @throws Throwable */
+    public function send(HttpRequest $httpRequest): HttpResponse
     {
         $findHeaders = true;
         $buffer = '';
         $maxHeadersSize = 16384;
-        $headersRaw = '';
-        $bodyBuffer = '';
-
         $serializer = new HttpRequestSerializer();
         $httpRequestString = $serializer->toString($httpRequest);
 
@@ -58,19 +53,12 @@ final class HttpClient
                 );
             }
 
-            $pos = strpos($buffer, "\r\n\r\n");
-            if ($pos !== false) {
-                $headersRaw = substr($buffer, 0, $pos + 4);
-                $bodyBuffer = substr($buffer, $pos + 4);
+            if (str_contains($buffer, "\r\n\r\n") !== false) {
                 $findHeaders = false;
             }
         }
 
         $parser = new HttpResponseParser();
-
-        return new HttpResponseParts(
-            headers: $parser->parse($headersRaw)->headers,
-            body: $bodyBuffer
-        );
+        return $parser->parse($buffer);
     }
 }
