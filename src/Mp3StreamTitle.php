@@ -198,19 +198,19 @@ final class Mp3StreamTitle
             $socket->open();
 
             $httpResponse = $httpClient->send($httpRequest);
+            $initialBuffer = $httpResponse->body;
             // Find out from which byte the metadata will begin
             $offset = $icyMetaIntExtractor->getMetaInt($httpResponse);
-            $initialBuffer = $httpResponse->body;
             $targetLength = $offset + 1 + $this->config->metaMaxLength;
             $safetyMargin = 8192;
             $maxAllowed = $targetLength + $safetyMargin;
-            $metadataBlock = $streamReader->read($socket, $initialBuffer, $targetLength, $maxAllowed);
+            $bodyBuffer = $streamReader->read($socket, $initialBuffer, $targetLength, $maxAllowed);
         } finally {
             $socket->close();
         }
 
         $extractor = new MetadataExtractor();
-        $metadata = $extractor->extract($metadataBlock, $offset);
+        $metadata = $extractor->extract($bodyBuffer, $offset);
 
         return $this->getSongInfo($metadata);
     }
