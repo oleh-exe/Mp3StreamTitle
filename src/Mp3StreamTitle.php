@@ -23,10 +23,13 @@ use Mp3StreamTitle\Application\Config\Mp3StreamTitleConfig;
 use Mp3StreamTitle\Domain\ValueObject\StreamEndpoint;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClient;
 use Mp3StreamTitle\Infrastructure\Http\CurlHttpClientConfig;
+use Mp3StreamTitle\Infrastructure\Http\HttpClient;
 use Mp3StreamTitle\Infrastructure\Http\IcyMetadataStreamParser;
+use Mp3StreamTitle\Infrastructure\Http\IcyMetaIntExtractor;
 use Mp3StreamTitle\Infrastructure\Http\MetadataExtractor;
 use Mp3StreamTitle\Infrastructure\Http\OffsetResolver;
 use Mp3StreamTitle\Infrastructure\Http\Request\StreamRequestFactory;
+use Mp3StreamTitle\Infrastructure\Http\SocketConnection;
 use Mp3StreamTitle\Infrastructure\Http\StreamReader;
 use RuntimeException;
 use Throwable;
@@ -174,20 +177,40 @@ final class Mp3StreamTitle
     {
         $endpoint = StreamEndpoint::fromString($streamingUrl);
 
-        $offsetResolver = new OffsetResolver();
-        // Find out from which byte the metadata will begin
-        $offset = $offsetResolver->resolve($endpoint->getUrl(), $this->config);
-
+        $socket = new SocketConnection(
+            $endpoint->getHost(),
+            $endpoint->getPort(),
+            $endpoint->getTransport(),
+            30
+        );
         $streamRequest = new StreamRequestFactory();
-        $httpRequest = $streamRequest->create($endpoint, $this->config);
+        $httpClient = new HttpClient($socket);
 
+        $httpRequest = $streamRequest->create(
+            $endpoint,
+            $this->config
+        );
+
+        $icyMetaIntExtractor = new IcyMetaIntExtractor();
         $streamReader = new StreamReader();
-        $metadataBlock = $streamReader->read($endpoint, $httpRequest, $offset, $this->config);
 
+        try {
+            $socket->open();
+
+            $httpResponse = $httpClient->send($httpRequest);
+            // Find out from which byte the metadata will begin
+            $offset = $icyMetaIntExtractor->getMetaInt($httpResponse);
+            $initialBuffer = $httpResponse->body;
+            $targetLength = $offset + 1 + $this->config->metaMaxLength;
+            $safetyMargin = 8192;
+            $maxAllowed = $targetLength + $safetyMargin;
+            $metadataBlock = $streamReader->read($socket, $initialBuffer, $targetLength, $maxAllowed);
+        } finally {
+            $socket->close();
+        }
         $extractor = new MetadataExtractor();
-        $metadata = $extractor->extract($metadataBlock);
+        $metadata = $extractor->extract($metadataBlock, $offset);
 
-        // Return the result of the request.
         return $this->getSongInfo($metadata);
     }
 
