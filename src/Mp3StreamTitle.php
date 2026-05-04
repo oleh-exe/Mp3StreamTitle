@@ -123,7 +123,7 @@ final class Mp3StreamTitle
         }
 
         $endpoint = StreamEndpoint::fromString($streamingUrl);
-
+        // TODO: Replace with "MetadataExtractor"
         $offsetResolver = new OffsetResolver();
         // Find out from which byte the metadata will begin
         $offset = $offsetResolver->resolve($endpoint->getUrl(), $this->config);
@@ -208,6 +208,7 @@ final class Mp3StreamTitle
         } finally {
             $socket->close();
         }
+
         $extractor = new MetadataExtractor();
         $metadata = $extractor->extract($metadataBlock, $offset);
 
