@@ -23,13 +23,28 @@ use RuntimeException;
 
 final class MetadataExtractor
 {
-    /**
-     * @param string $body
-     *
-     * @return string
-     */
-    public function extract(string $metadataBlock): string
+    public function extract(string $metadataBlock, int $offset): string
     {
-        return $metadataBlock;
+        if (!isset($metadataBlock[$offset])) {
+            throw new RuntimeException(
+                'Metadata offset is out of bounds'
+            );
+        }
+        // ICY metadata block structure:
+        // [offset]      = length byte (metadata length / 16)
+        // [offset + 1]  = start of actual metadata (e.g., StreamTitle='...';)
+        $metaStart = $offset + 1;
+        // Find out the length of metadata.
+        $metaLength = ord($metadataBlock[$offset]) * 16;
+
+        if ($metaLength === 0) {
+            return '';
+        }
+        // Get metadata in the following format "StreamTitle='artist name and song name';".
+        return substr(
+            $metadataBlock,
+            $metaStart,
+            $metaLength
+        );
     }
 }
