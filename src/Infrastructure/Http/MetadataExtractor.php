@@ -23,9 +23,17 @@ use RuntimeException;
 
 final class MetadataExtractor
 {
-    public function extract(string $metadataBlock, int $offset): string
+    /**
+     * @param string $bodyBuffer full stream buffer (headers excluded)
+     * @param int $offset offset in bytes from stream start (icy-metaint)
+     *
+     * @return string
+     */
+    public function extract(string $bodyBuffer, int $offset): string
     {
-        if (!isset($metadataBlock[$offset])) {
+        $length = strlen($bodyBuffer);
+
+        if ($length <= $offset) {
             throw new RuntimeException(
                 'Metadata offset is out of bounds'
             );
@@ -35,14 +43,26 @@ final class MetadataExtractor
         // [offset + 1]  = start of actual metadata (e.g., StreamTitle='...';)
         $metaStart = $offset + 1;
         // Find out the length of metadata.
-        $metaLength = ord($metadataBlock[$offset]) * 16;
+        $metaLength = ord($bodyBuffer[$offset]) * 16;
 
         if ($metaLength === 0) {
             return '';
         }
+
+        $expectedLength = $metaStart + $metaLength;
+        if ($length < ($expectedLength)) {
+            throw new RuntimeException(
+                sprintf(
+                    'Metadata block is too short: expected buffer length >= %d bytes, got %d bytes (offset %d)',
+                    $expectedLength,
+                    $length,
+                    $offset
+                )
+            );
+        }
         // Get metadata in the following format "StreamTitle='artist name and song name';".
         return substr(
-            $metadataBlock,
+            $bodyBuffer,
             $metaStart,
             $metaLength
         );
