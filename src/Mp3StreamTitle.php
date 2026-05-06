@@ -31,6 +31,7 @@ use Mp3StreamTitle\Infrastructure\Http\OffsetResolver;
 use Mp3StreamTitle\Infrastructure\Http\Request\StreamRequestFactory;
 use Mp3StreamTitle\Infrastructure\Http\SocketConnection;
 use Mp3StreamTitle\Infrastructure\Http\StreamReader;
+use Mp3StreamTitle\Infrastructure\Metadata\StreamTitleExtractor;
 use RuntimeException;
 use Throwable;
 
@@ -157,8 +158,8 @@ final class Mp3StreamTitle
             );
         }
 
-        // Return the result of the request.
-        return $this->getSongInfo($metadata);
+        $streamTitleExtractor = new StreamTitleExtractor();
+        return $streamTitleExtractor->extract($metadata);
     }
 
     /**
@@ -209,10 +210,11 @@ final class Mp3StreamTitle
             $socket->close();
         }
 
-        $extractor = new MetadataExtractor();
-        $metadata = $extractor->extract($bodyBuffer, $offset);
+        $metadataExtractor = new MetadataExtractor();
+        $metadata = $metadataExtractor->extract($bodyBuffer, $offset);
 
-        return $this->getSongInfo($metadata);
+        $streamTitleExtractor = new StreamTitleExtractor();
+        return $streamTitleExtractor->extract($metadata);
     }
 
     /**
@@ -261,31 +263,7 @@ final class Mp3StreamTitle
         // Get metadata in the following format "StreamTitle='artist name and song name';".
         $metadata = substr($buffer, $offset, $metaLength);
 
-        return $this->getSongInfo($metadata);
-    }
-
-    /**
-     * The function takes metadata as an argument in the following
-     * format "StreamTitle='artist name and song name';" and returns
-     * the song information from the metadata in the following format
-     * "artist name and song name".
-     *
-     * @param string $metadata
-     * @return string
-     */
-    private function getSongInfo(string $metadata): string
-    {
-        /* Find the position of the string "='" indicating the beginning of information about the
-           song and find position of the string "';" which indicates the end of the song information. */
-        if (($infoStart = strpos($metadata, '=\'')) && ($infoEnd = strpos($metadata, '\';'))) {
-            // Get information about the song in the following format "artist name and song name".
-            $result = substr($metadata, $infoStart + 2, $infoEnd - ($infoStart + 2));
-            // If error messages display disabled.
-        } else {
-            throw new RuntimeException(
-                'Failed to get song info'
-            );
-        }
-        return $result;
+        $streamTitleExtractor = new StreamTitleExtractor();
+        return $streamTitleExtractor->extract($metadata);
     }
 }
