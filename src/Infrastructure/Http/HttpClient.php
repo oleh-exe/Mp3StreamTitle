@@ -26,14 +26,32 @@ use Throwable;
 
 final class HttpClient
 {
+    /**
+     * @var SocketConnection
+     */
     private SocketConnection $socket;
 
+    /**
+     * Constructor for initializing the class with a socket connection.
+     *
+     * @param SocketConnection $socket The socket connection instance.
+     *
+     * @return void
+     */
     public function __construct(SocketConnection $socket)
     {
         $this->socket = $socket;
     }
 
-    /** * @throws Throwable */
+    /**
+     * Sends an HTTP request through a socket connection and retrieves the HTTP response.
+     *
+     * @param HttpRequest $httpRequest The HTTP request to be sent.
+     *
+     * @return HttpResponse The HTTP response parsed from the server's reply.
+     *
+     * @throws RuntimeException|Throwable If the HTTP headers exceed the maximum allowed size.
+     */
     public function send(HttpRequest $httpRequest): HttpResponse
     {
         $findHeaders = true;
