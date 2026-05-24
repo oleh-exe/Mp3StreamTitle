@@ -27,9 +27,12 @@ use Mp3StreamTitle\Infrastructure\Http\Enum\HttpVersion;
 final class StreamRequestFactory
 {
     /**
-     * @param StreamEndpoint $endpoint
-     * @param Mp3StreamTitleConfig $config
-     * @return HttpRequest
+     * Creates an HTTP request for streaming with specific headers and configuration.
+     *
+     * @param StreamEndpoint $endpoint The streaming endpoint containing host, port, and request target information.
+     * @param Mp3StreamTitleConfig $config Configuration for the MP3 stream, including user agent details.
+     *
+     * @return HttpRequest The constructed HTTP request containing the necessary headers and metadata.
      */
     public function create(StreamEndpoint $endpoint, Mp3StreamTitleConfig $config): HttpRequest
     {
