@@ -45,7 +45,7 @@ final readonly class StreamTitleExtractor
 
         if ($start === false) {
             throw new RuntimeException(
-                'StreamTitle field not found in metadata.'
+                'StreamTitle field not found in metadata'
             );
         }
 
@@ -55,7 +55,7 @@ final readonly class StreamTitleExtractor
 
         if ($end === false) {
             throw new RuntimeException(
-                'StreamTitle closing delimiter not found.'
+                'StreamTitle closing delimiter not found'
             );
         }
 
