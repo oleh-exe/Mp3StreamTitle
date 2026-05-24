@@ -25,6 +25,15 @@ use Throwable;
 final class StreamReader
 {
     /**
+     * Reads data from a socket connection until the desired length is achieved.
+     *
+     * @param SocketConnection $socket The socket connection to read data from.
+     * @param string $initialBuffer The initial buffer containing previously read data.
+     * @param int $targetLength The target length of data to be read.
+     * @param int $maxAllowed The maximum allowed length for the buffer.
+     *
+     * @return string The buffer containing the required data.
+     *
      * @throws Throwable
      */
     public function read(
@@ -41,7 +50,16 @@ final class StreamReader
     }
 
     /**
-     * @throws Throwable
+     * Continues reading data from a socket connection until the target length is reached.
+     *
+     * @param SocketConnection $socket The socket connection to read data from.
+     * @param string &$initialBuffer A reference to the buffer containing previously read data, which will be updated with additional data.
+     * @param int $targetLength The target length of data to be reached within the buffer.
+     * @param int $maxAllowed The maximum allowed length for the buffer, beyond which an exception will be thrown.
+     *
+     * @return void
+     *
+     * @throws RuntimeException|Throwable If the buffer exceeds the maximum allowed length.
      */
     private function readUntilLength(
         SocketConnection $socket,
