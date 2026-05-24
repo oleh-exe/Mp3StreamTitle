@@ -35,14 +35,20 @@ final class SocketConnection
 
     /**
      * The current state of the connection.
+     *
+     * @var ConnectionState $state
      */
     private ConnectionState $state = ConnectionState::INITIAL;
 
     /**
-     * @param string $host
-     * @param int $port
-     * @param Transport $transport
-     * @param int $timeout
+     * @param string $host The hostname to connect to.
+     * @param int $port The port number to connect on.
+     * @param Transport $transport The transport mechanism to be used.
+     * @param int $timeout The connection timeout in seconds; must be greater than 0.
+     *
+     * @return void
+     *
+     * @throws InvalidArgumentException If the timeout is less than or equal to 0.
      */
     public function __construct(
         private readonly string $host,
@@ -58,7 +64,16 @@ final class SocketConnection
     }
 
     /**
-     * @throws Throwable
+     * Opens a connection to the specified remote address using the defined
+     * transport, host, and port. Handles connection errors and sets the
+     * connection state appropriately.
+     *
+     * @return void
+     *
+     * @throws LogicException If the connection cannot be opened from the current state
+     *                        or if it has previously failed and cannot be reused.
+     * @throws SocketConnectionException|Throwable If the connection fails, or if stream settings
+     *                                    (blocking mode or timeout) cannot be configured.
      */
     public function open(): void
     {
@@ -122,10 +137,14 @@ final class SocketConnection
     }
 
     /**
-     * @param string $data
+     * Writes the given data to the socket connection.
+     *
+     * @param string $data The data to be written to the connection.
      *
      * @return void
-     * @throws Throwable
+     *
+     * @throws SocketConnectionException If writing to the socket fails.
+     * @throws Throwable If an unexpected error occurs during the write operation.
      */
     public function write(string $data): void
     {
@@ -162,8 +181,12 @@ final class SocketConnection
     }
 
     /**
-     * @return string
-     * @throws Throwable
+     * Reads data from the socket in chunks of a fixed length.
+     *
+     * @return string The data read from the socket.
+     *
+     * @throws SocketConnectionException If the read operation fails due to errors, timeout, EOF, or unexpected conditions.
+     * @throws Throwable If any other unexpected exception occurs during the operation.
      */
     public function read(): string
     {
@@ -210,6 +233,8 @@ final class SocketConnection
     }
 
     /**
+     * Closes the current resource and updates the connection state.
+     *
      * @return void
      */
     public function close(): void
@@ -226,15 +251,11 @@ final class SocketConnection
     }
 
     /**
-     * @return ConnectionState
-     */
-    public function getState(): ConnectionState
-    {
-        return $this->state;
-    }
-
-    /**
+     * Ensures the current state is valid and the socket resource is available.
+     *
      * @return void
+     *
+     * @throws LogicException If the current state is not CONNECTED or the socket resource is unavailable.
      */
     private function assertConnected(): void
     {
@@ -255,8 +276,13 @@ final class SocketConnection
     }
 
     /**
-     * @param Throwable $e
-     * @return never
+     * Handles a critical failure in the connection by closing the resource, clearing
+     * the internal state, and throwing the provided exception.
+     *
+     * @param Throwable $e The exception to be thrown indicating the failure.
+     *
+     * @return never This method does not return a value as it always throws an exception.
+     *
      * @throws Throwable
      */
     private function fail(Throwable $e): never
