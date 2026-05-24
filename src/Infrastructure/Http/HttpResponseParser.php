@@ -25,13 +25,17 @@ use RuntimeException;
 final readonly class HttpResponseParser
 {
     /**
-     * @param string $httpResponse
+     * Parses the provided HTTP response string into an HttpResponse object.
      *
-     * @return HttpResponse
+     * @param string $httpResponse The raw HTTP response string to parse, including headers and body.
+     *
+     * @return HttpResponse The parsed HttpResponse object containing the protocol version, status code,
+     * reason phrase, headers, and body.
      */
     public function parse(string $httpResponse): HttpResponse
     {
         $headerBodySeparator = $this->findHeaderBodySeparator($httpResponse);
+
         // Separate the headers from the "body".
         $length = $headerBodySeparator['pos'];
         $rawHeaders = substr($httpResponse, 0, $length);
@@ -54,11 +58,15 @@ final readonly class HttpResponseParser
     }
 
     /**
-     * Header/body separator (tolerant framing)
+     * Identifies the position and length of the header-body separator in an HTTP response.
      *
-     * @param string $httpResponse
+     * @param string $httpResponse The full HTTP response as a string.
      *
-     * @return array
+     * @return array{pos: int, length: int} An associative array containing:
+     *                                      - 'pos': The position of the separator in the response.
+     *                                      - 'length': The length of the separator pattern.
+     *
+     * @throws RuntimeException If the header-body separator cannot be found in the provided HTTP response.
      */
     private function findHeaderBodySeparator(string $httpResponse): array
     {
@@ -100,18 +108,16 @@ final readonly class HttpResponseParser
     }
 
     /**
-     * Single-pass parsing: status + headers
+     * Parses an array of HTTP header lines into a status array and a header array.
      *
-     * @param array $lines
+     * @param array $lines An array of strings representing the HTTP header lines.
      *
-     * @return array{
-     *     0: array{
-     *     version: string,
-     *     code: int,
-     *     reason: string
-     *     },
-     *     1: array<string, string>
-     * }
+     * @return array{0: array{version: string, code: int, reason: string}, 1: array<string, string>}
+     *         Returns a two-element array where:
+     *         - The first element is an associative array containing the HTTP version, status code, and reason phrase.
+     *         - The second element is an associative array of normalized header names and their corresponding values.
+     *
+     * @throws RuntimeException If the status line is not found or cannot be parsed.
      */
     private function parseHeaderLines(array $lines): array
     {
@@ -144,16 +150,19 @@ final readonly class HttpResponseParser
 
             $name = trim($name);
             $value = trim($value);
+
             // --- light filtering (NOT strict validation) ---
             if ($name === '') {
                 continue;
             }
+
             // --- light filtering (NOT strict validation) ---
             if (str_contains($value, "\r") || str_contains($value, "\n")) {
                 continue;
             }
 
             $normalizedName = $this->normalizeHeaderName($name);
+
             // Option: the last value wins
             $headers[$normalizedName] = $value;
         }
@@ -166,9 +175,16 @@ final readonly class HttpResponseParser
     }
 
     /**
-     * @param string $statusLine
+     * Parses the HTTP status line from a response to extract its components.
      *
-     * @return array{version: string, code: int, reason: string}
+     * @param string $statusLine The HTTP status line to be parsed.
+     *
+     * @return array An associative array containing the parsed components:
+     *               - 'version': string, the HTTP protocol version (e.g., "1.1").
+     *               - 'code': int, the HTTP status code (e.g., 200).
+     *               - 'reason': string, the reason phrase (e.g., "OK").
+     *
+     * @throws RuntimeException If the status line cannot be parsed.
      */
     private function parseStatusLine(string $statusLine): array
     {
@@ -194,9 +210,12 @@ final readonly class HttpResponseParser
     }
 
     /**
-     * @param string $name
+     * Normalizes the header name by capitalizing the first letter of each segment
+     * separated by a hyphen and converting the remaining letters to lowercase.
      *
-     * @return string
+     * @param string $name The header name to be normalized.
+     *
+     * @return string The normalized header name, with each segment properly capitalized.
      */
     private function normalizeHeaderName(string $name): string
     {
