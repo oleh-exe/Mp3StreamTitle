@@ -24,10 +24,21 @@ use RuntimeException;
 final class MetadataExtractor
 {
     /**
-     * @param string $bodyBuffer full stream buffer (headers excluded)
-     * @param int $offset offset in bytes from stream start (icy-metaint)
+     * Extracts ICY metadata from a buffer starting at the given offset.
      *
-     * @return string
+     * The ICY metadata block structure includes:
+     * - [offset]      = length byte (metadata length / 16)
+     * - [offset + 1]  = start of actual metadata (e.g., StreamTitle='...';)
+     *
+     * The method retrieves the metadata in the format "StreamTitle='...'";
+     * or returns an empty string if no metadata is present.
+     *
+     * @param string $bodyBuffer Full stream buffer (headers excluded).
+     * @param int $offset The offset in bytes from stream start (icy-metaint).
+     *
+     * @return string The extracted metadata string.
+     *
+     * @throws RuntimeException If the offset is out of bounds or the metadata block is incomplete.
      */
     public function extract(string $bodyBuffer, int $offset): string
     {
@@ -38,10 +49,12 @@ final class MetadataExtractor
                 'Metadata offset is out of bounds'
             );
         }
+
         // ICY metadata block structure:
         // [offset]      = length byte (metadata length / 16)
         // [offset + 1]  = start of actual metadata (e.g., StreamTitle='...';)
         $metaStart = $offset + 1;
+
         // Find out the length of metadata.
         $metaLength = ord($bodyBuffer[$offset]) * 16;
 
@@ -60,6 +73,7 @@ final class MetadataExtractor
                 )
             );
         }
+
         // Get metadata in the following format "StreamTitle='artist name and song name';".
         return substr(
             $bodyBuffer,
