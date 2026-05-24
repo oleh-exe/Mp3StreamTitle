@@ -23,6 +23,17 @@ use Mp3StreamTitle\Infrastructure\Http\Request\HeaderCollection;
 
 final readonly class HttpResponse
 {
+    /**
+     * Constructs a new instance of the class.
+     *
+     * @param string $protocolVersion The HTTP protocol version.
+     * @param int $statusCode The HTTP status code.
+     * @param string $reason The reason phrase associated with the status code.
+     * @param HeaderCollection $headers The collection of headers.
+     * @param string $body The body of the HTTP message.
+     *
+     * @return void
+     */
     public function __construct(
         public string $protocolVersion,
         public int $statusCode,
