@@ -28,13 +28,20 @@ final readonly class HeaderCollection
      */
     private array $headers;
 
+    /**
+     * @param array $headers An array of headers to be normalized and validated.
+     *
+     * @return void
+     */
     public function __construct(array $headers)
     {
         $this->headers = $this->normalizeAndValidateHeaders($headers);
     }
 
     /**
-     * @return array
+     * Retrieves all the headers.
+     *
+     * @return array An associative array containing all headers.
      */
     public function all(): array
     {
@@ -42,8 +49,11 @@ final readonly class HeaderCollection
     }
 
     /**
-     * @param string $name
-     * @return bool
+     * Checks if a specific header exists.
+     *
+     * @param string $name The name of the header to check for existence.
+     *
+     * @return bool True if the header exists, false otherwise.
      */
     public function has(string $name): bool
     {
@@ -51,8 +61,13 @@ final readonly class HeaderCollection
     }
 
     /**
-     * @param string $name
-     * @return string
+     * Retrieves the value of the specified header.
+     *
+     * @param string $name The name of the header to retrieve.
+     *
+     * @return string The value of the specified header.
+     *
+     * @throws InvalidArgumentException If the specified header does not exist.
      */
     public function get(string $name): string
     {
@@ -68,9 +83,12 @@ final readonly class HeaderCollection
     }
 
     /**
-     * @param string $name
-     * @param string $value
-     * @return self
+     * Returns a new instance with the specified header.
+     *
+     * @param string $name The name of the header.
+     * @param string $value The value of the header.
+     *
+     * @return self A new instance with the updated header.
      */
     public function with(string $name, string $value): self
     {
@@ -86,8 +104,22 @@ final readonly class HeaderCollection
     }
 
     /**
-     * @param array $headers
-     * @return array
+     * Normalizes and validates the provided headers.
+     *
+     * This method ensures that all header names and values are strings,
+     * validates their format, and normalizes header names for consistent usage.
+     * It also checks for and prevents duplicate headers.
+     *
+     * @param array $headers An associative array of headers where the key
+     *                       represents the header name and the value
+     *                       represents the header value.
+     *
+     * @return array An associative array of normalized and validated headers.
+     *
+     * @throws InvalidArgumentException If a header name is not a string,
+     *                                  if a header value is not a string,
+     *                                  if a header name or value is invalid,
+     *                                  or if there are duplicate headers.
      */
     private function normalizeAndValidateHeaders(array $headers): array
     {
@@ -124,8 +156,13 @@ final readonly class HeaderCollection
     }
 
     /**
-     * @param string $name
+     * Validates a header name to ensure it meets the required format.
+     *
+     * @param string $name The header name to validate.
+     *
      * @return void
+     *
+     * @throws InvalidArgumentException If the header name is empty or contains invalid characters.
      */
     private function assertValidHeaderName(string $name): void
     {
@@ -143,8 +180,13 @@ final readonly class HeaderCollection
     }
 
     /**
-     * @param string $value
+     * Validates the provided header value to ensure it does not contain invalid characters.
+     *
+     * @param string $value The header value to validate.
+     *
      * @return void
+     *
+     * @throws InvalidArgumentException If the header value contains CR or LF characters.
      */
     private function assertValidHeaderValue(string $value): void
     {
@@ -156,8 +198,12 @@ final readonly class HeaderCollection
     }
 
     /**
-     * @param string $name
-     * @return string
+     * Normalizes the header name to a consistent format.
+     * Converts each part of the header name, separated by hyphens, to have an initial uppercase letter while the rest are lowercase.
+     *
+     * @param string $name The header name to be normalized.
+     *
+     * @return string The normalized header name.
      */
     private function normalizeHeaderName(string $name): string
     {
