@@ -46,10 +46,16 @@ final readonly class HttpRequest
     private HeaderCollection $headers;
 
     /**
-     * @param HttpMethod $method
-     * @param string $target
-     * @param HttpVersion $httpVersion
-     * @param HeaderCollection $headers
+     * Constructor for initializing an HTTP request object.
+     *
+     * @param HttpMethod $method The HTTP method (e.g., GET) of the request.
+     * @param string $target The target URI of the request. Must start with '/'.
+     * @param HttpVersion $httpVersion The HTTP version of the request (e.g., 1.0).
+     * @param HeaderCollection $headers The collection of headers associated with the request.
+     *
+     * @return void
+     *
+     * @throws InvalidArgumentException If the target is empty or does not start with '/'.
      */
     public function __construct(
         HttpMethod $method,
@@ -76,7 +82,9 @@ final readonly class HttpRequest
     }
 
     /**
-     * @return HttpMethod
+     * Gets the HTTP method.
+     *
+     * @return HttpMethod The HTTP method instance.
      */
     public function method(): HttpMethod
     {
@@ -84,7 +92,9 @@ final readonly class HttpRequest
     }
 
     /**
-     * @return string
+     * Retrieves the target value.
+     *
+     * @return string The target value.
      */
     public function target(): string
     {
@@ -92,7 +102,9 @@ final readonly class HttpRequest
     }
 
     /**
-     * @return HttpVersion
+     * Retrieves the HTTP version.
+     *
+     * @return HttpVersion The HTTP version.
      */
     public function version(): HttpVersion
     {
@@ -100,7 +112,9 @@ final readonly class HttpRequest
     }
 
     /**
-     * @return HeaderCollection
+     * Retrieves the collection of headers.
+     *
+     * @return HeaderCollection The collection of headers.
      */
     public function headers(): HeaderCollection
     {
