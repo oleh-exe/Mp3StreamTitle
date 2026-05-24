@@ -23,6 +23,15 @@ use RuntimeException;
 
 final class IcyMetaIntExtractor
 {
+    /**
+     * Retrieves and validates the "icy-metaint" header value from the given HTTP response.
+     *
+     * @param HttpResponse $httpResponse The HTTP response object containing headers.
+     *
+     * @return int The validated "icy-metaint" header value.
+     *
+     * @throws RuntimeException If the "icy-metaint" header is not found, contains an invalid value, or is not a positive integer.
+     */
     public function getMetaInt(HttpResponse $httpResponse): int
     {
         if (!$httpResponse->headers->has('icy-metaint')) {
