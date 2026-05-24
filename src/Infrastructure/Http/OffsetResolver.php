@@ -25,9 +25,18 @@ use RuntimeException;
 final class OffsetResolver
 {
     /**
-     * @param string $streamingUrl
-     * @param Mp3StreamTitleConfig $config
-     * @return int
+     * Resolves the "icy-metaint" header value from the HTTP response of a streaming URL.
+     *
+     * This method sends an HTTP GET request to the given streaming URL with specific headers
+     * to retrieve the "icy-metaint" header, which defines the number of bytes that must
+     * be read from the stream before metadata begins.
+     *
+     * @param string $streamingUrl The URL of the audio stream to be resolved.
+     * @param Mp3StreamTitleConfig $config Configuration containing details such as the user agent.
+     *
+     * @return int The "icy-metaint" value indicating the byte interval for metadata in the stream.
+     *
+     * @throws RuntimeException If the headers cannot be retrieved or the "icy-metaint" header is missing/invalid.
      */
     public function resolve(string $streamingUrl, Mp3StreamTitleConfig $config): int
     {
