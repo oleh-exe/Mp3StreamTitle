@@ -38,21 +38,21 @@ use Throwable;
 final class Mp3StreamTitle
 {
     /**
-     * Method sendCurl.
+     * Method extractUsingCurl.
      *
      * @var int
      */
     public const SEND_CURL = 1;
 
     /**
-     * Method sendSocket.
+     * Method extractUsingSocket.
      *
      * @var int
      */
     public const SEND_SOCKET = 2;
 
     /**
-     * Method sendFGC.
+     * Method extractUsingStream.
      *
      * @var int
      */
@@ -92,11 +92,11 @@ final class Mp3StreamTitle
     {
         return match ($this->config->sendType) {
             // Use the cURL-function.
-            self::SEND_CURL => $this->sendCurl($streamingUrl),
+            self::SEND_CURL => $this->extractUsingCurl($streamingUrl),
             // Use the Socket-function.
-            self::SEND_SOCKET => $this->sendSocket($streamingUrl),
+            self::SEND_SOCKET => $this->extractUsingSocket($streamingUrl),
             // Use the FGC-function.
-            self::SEND_FGC => $this->sendFGC($streamingUrl),
+            self::SEND_FGC => $this->extractUsingStream($streamingUrl),
             // TODO: Finalize
             //default => $this->error('error.invalid_send_type'),
         };
@@ -114,7 +114,7 @@ final class Mp3StreamTitle
      *
      * @throws RuntimeException If cURL is unavailable or metadata cannot be retrieved.
      */
-    private function sendCurl(string $streamingUrl): string
+    private function extractUsingCurl(string $streamingUrl): string
     {
         // Checking if we can use cURL.
         if (!extension_loaded('curl') || !function_exists('curl_init')) {
@@ -163,6 +163,56 @@ final class Mp3StreamTitle
     }
 
     /**
+     * The FGC-function takes as an argument a direct link to an online
+     * radio station stream and opens the stream using the set HTTP headers.
+     * As a result, the function returns information about the song
+     * in the following format "artist name and song name".
+     *
+     * @param string $streamingUrl
+     * @return string|int
+     */
+    private function extractUsingStream(string $streamingUrl): string|int
+    {
+        $endpoint = StreamEndpoint::fromString($streamingUrl);
+
+        $offsetResolver = new OffsetResolver();
+        // Find out from which byte the metadata will begin
+        $offset = $offsetResolver->resolve($endpoint->getUrl(), $this->config);
+
+        // HTTP-request headers.
+        $optionsMethod = "GET";
+        $optionsHeader = "User-Agent: " . $this->config->userAgent . "\r\n";
+        $optionsHeader .= "Icy-MetaData: 1\r\n\r\n";
+
+        $options = [
+            'http' => [
+                'method' => $optionsMethod,
+                'header' => $optionsHeader,
+                'timeout' => 30
+            ]
+        ];
+        // Create a thread context.
+        $context = stream_context_create($options);
+        // Find out how many bytes of data need to be received.
+        $dataByte = $offset + 1 + $this->config->metaMaxLength;
+        // Open the stream using the HTTP headers set above.
+        $buffer = file_get_contents($endpoint->getUrl(), false, $context, 0, $dataByte);
+
+        if ($buffer === false) {
+            throw new RuntimeException(
+                'Failed to get server response'
+            );
+        }
+        // Find out length of metadata.
+        $metaLength = ord(substr($buffer, $offset, 1)) * 16;
+        // Get metadata in the following format "StreamTitle='artist name and song name';".
+        $metadata = substr($buffer, $offset, $metaLength);
+
+        $streamTitleExtractor = new StreamTitleExtractor();
+        return $streamTitleExtractor->extract($metadata);
+    }
+
+    /**
      * The socket-function takes as an argument a direct link to the stream
      * of the online radio station and sends an HTTP request to the stream
      * server. As a result, the function returns information about the song
@@ -174,7 +224,7 @@ final class Mp3StreamTitle
      *
      * @throws RuntimeException|Throwable
      */
-    private function sendSocket(string $streamingUrl): string
+    private function extractUsingSocket(string $streamingUrl): string
     {
         $endpoint = StreamEndpoint::fromString($streamingUrl);
 
@@ -212,56 +262,6 @@ final class Mp3StreamTitle
 
         $metadataExtractor = new MetadataExtractor();
         $metadata = $metadataExtractor->extract($bodyBuffer, $offset);
-
-        $streamTitleExtractor = new StreamTitleExtractor();
-        return $streamTitleExtractor->extract($metadata);
-    }
-
-    /**
-     * The FGC-function takes as an argument a direct link to an online
-     * radio station stream and opens the stream using the set HTTP headers.
-     * As a result, the function returns information about the song
-     * in the following format "artist name and song name".
-     *
-     * @param string $streamingUrl
-     * @return string|int
-     */
-    private function sendFGC(string $streamingUrl): string|int
-    {
-        $endpoint = StreamEndpoint::fromString($streamingUrl);
-
-        $offsetResolver = new OffsetResolver();
-        // Find out from which byte the metadata will begin
-        $offset = $offsetResolver->resolve($endpoint->getUrl(), $this->config);
-
-        // HTTP-request headers.
-        $optionsMethod = "GET";
-        $optionsHeader = "User-Agent: " . $this->config->userAgent . "\r\n";
-        $optionsHeader .= "Icy-MetaData: 1\r\n\r\n";
-
-        $options = [
-            'http' => [
-                'method' => $optionsMethod,
-                'header' => $optionsHeader,
-                'timeout' => 30
-            ]
-        ];
-        // Create a thread context.
-        $context = stream_context_create($options);
-        // Find out how many bytes of data need to be received.
-        $dataByte = $offset + 1 + $this->config->metaMaxLength;
-        // Open the stream using the HTTP headers set above.
-        $buffer = file_get_contents($endpoint->getUrl(), false, $context, 0, $dataByte);
-
-        if ($buffer === false) {
-            throw new RuntimeException(
-                'Failed to get server response'
-            );
-        }
-        // Find out length of metadata.
-        $metaLength = ord(substr($buffer, $offset, 1)) * 16;
-        // Get metadata in the following format "StreamTitle='artist name and song name';".
-        $metadata = substr($buffer, $offset, $metaLength);
 
         $streamTitleExtractor = new StreamTitleExtractor();
         return $streamTitleExtractor->extract($metadata);
